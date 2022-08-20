@@ -1,5 +1,3 @@
-use std::path::Path;
-use std::io::Read;
 
 /*
 General Memory Map
@@ -17,31 +15,7 @@ General Memory Map
   FFFF        Interrupt Enable Register
 */
 
-const WRAM_SIZE: usize = 8_192;     // 8KB Work RAM.
-const VRAM_SIZE: usize = 8_192;     // 8KB Video RAM.
-const HRAM_SIZE: usize = 127;       // High RAM.
-const ROM_SIZE:  usize = 32_768;    // 32KB ROM.
-
-// Memory management unit.
-struct MMU {
-
-    // Cartridge ROM - read only, 2x16KB banks = 32KB.
-    rom: [u8; ROM_SIZE],
-
-    // Work RAM - 2x8KB banks = 16KB.
-    wram: [u8; WRAM_SIZE],
-
-    // High RAM - 127 bytes.
-    hram: [u8; HRAM_SIZE],
-
-}
-
-impl Memory {
-
-    fn new(cartridge: &Path) -> Memory {
-        
-        Read::read_to_end(&mut self, buf)
-
-
-    }
-}
+// const WRAM_SIZE: usize = 8_192;     // 8KB Work RAM.
+// const VRAM_SIZE: usize = 8_192;     // 8KB Video RAM.
+// const HRAM_SIZE: usize = 127;       // High RAM.
+// const ROM_SIZE:  usize = 32_768;    // 32KB ROM.
