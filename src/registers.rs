@@ -2,6 +2,7 @@
 // CPU registers.
 // Registers af, bc, de and hl can be combined 
 // to form a 16-bit register pair.
+#[derive(Default)]
 pub struct Registers {
     pub a:  u8,      // Accumulator.
     f:      u8,      // Flags.
@@ -31,18 +32,17 @@ const CARRY_FLAG: u8        = 0b0001_0000;
 impl Registers {
 
     pub fn new() -> Self {
-        Registers {
-            a: 0,
-            f: 0,
-            b: 0,
-            c: 0,
-            d: 0,
-            e: 0,
-            h: 0,
-            l: 0,
+        let mut reg = Registers{
             sp: 0xFFFE,
             pc: 0x100,
-        }
+            ..Default::default()
+        };
+        // Initial register values.
+        reg.set_af(0x01B0);
+        reg.set_bc(0x0013);
+        reg.set_de(0x00D8);
+        reg.set_hl(0x014D);
+        reg
     }
 
     // Getters for 16-bit registers.
@@ -62,16 +62,7 @@ impl Registers {
         (self.h as u16) << 8 | (self.l as u16)
     }
     
-    pub fn get_flag(&self, flag: Flag) -> bool {
-        match flag {
-            Flag::Zero =>       self.f & ZERO_FLAG != 0,
-            Flag::Subtract =>   self.f & SUBTRACT_FLAG != 0,
-            Flag::HalfCarry =>  self.f & HALF_CARRY_FLAG != 0,
-            Flag::Carry =>      self.f & CARRY_FLAG != 0,
-        }
-    }
-
-    // Setters.
+    // Setters for 16-bit registers.
     pub fn set_af(&mut self, value: u16) {
         self.a = (value >> 8) as u8;
         self.f = value as u8;
@@ -92,6 +83,15 @@ impl Registers {
         self.l = value as u8;
     }
 
+    pub fn get_flag(&self, flag: Flag) -> bool {
+        match flag {
+            Flag::Zero =>       self.f & ZERO_FLAG != 0,
+            Flag::Subtract =>   self.f & SUBTRACT_FLAG != 0,
+            Flag::HalfCarry =>  self.f & HALF_CARRY_FLAG != 0,
+            Flag::Carry =>      self.f & CARRY_FLAG != 0,
+        }
+    }
+
     pub fn set_flag(&mut self, flag: Flag, value: bool) {
         match flag {
             Flag::Zero =>       self.f = if value { self.f | ZERO_FLAG } else { self.f & !ZERO_FLAG },
@@ -108,6 +108,15 @@ mod test {
     use super::Registers;
 
     #[test]
+    fn new() {
+        let reg = Registers::new();
+        assert_eq!(reg.get_af(), 0x01B0);
+        assert_eq!(reg.get_bc(), 0x0013);
+        assert_eq!(reg.get_de(), 0x00D8);
+        assert_eq!(reg.get_hl(), 0x014D);
+    }
+
+    #[test]
     fn combined_registers() {
         let mut reg = Registers::new();
         
@@ -121,10 +130,6 @@ mod test {
 
         reg.set_af(15786);
         assert_eq!(reg.get_af(), 0b0011110110101010)
-    }
-
-    fn flags() {
-        let mut reg = Registers::new();
     }
 
 }

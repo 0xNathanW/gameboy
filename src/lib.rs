@@ -1,3 +1,4 @@
 pub mod registers;
-pub mod mmu;
+pub mod memory;
 pub mod cpu;
+pub mod cartridge;
