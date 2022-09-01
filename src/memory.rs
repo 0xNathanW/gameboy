@@ -1,8 +1,12 @@
+use std::path::Path;
+
+use crate::cartridge::{Cartridge, self};
+
 
 const HRAM_SIZE: usize = 127;        // High RAM.
 const WRAM_SIZE:  usize = 32_768;    // 32KB Work RAM.
 
-pub trait Memory {
+pub trait MemoryBus {
 
     fn read_byte(&self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, b: u8);
@@ -19,22 +23,27 @@ pub trait Memory {
 }
 
 /*
-When the CPU tries to access a given address, it’s the MMU’s job to 
+When the CPU tries to access a given address, it’s the Memory's job to 
 determine which piece of underlying hardware that particular address 
 belongs to, and to forward the access to that device as appropriate.
 */
 
-pub struct MMU {
+pub struct Memory {
+    pub cartridge: Box<dyn Cartridge>,
     wram: [u8; WRAM_SIZE],
     hram: [u8; HRAM_SIZE],
 }
 
-impl MMU {
+impl Memory {
     
-    pub fn new() -> Self {
-        
+    pub fn new(path: &Path) -> Self {
+        let mut mem = Self {
+            cartridge: cartridge::open_cartridge(path),
+            wram: [0; WRAM_SIZE],
+            hram: [0; HRAM_SIZE],
+        };
+        mem
     }
-
 }
 
 /*
@@ -53,13 +62,13 @@ General Memory Map
   FFFF        Interrupt Enable Register
 */
 
-impl Memory for MMU {
+impl MemoryBus for Memory {
 
-    fn read_byte(&self, address: u16) -> u8 {
+    fn read_byte(&self, _address: u16) -> u8 {
         todo!()
     }
 
-    fn write_byte(&mut self, address: u16, b: u8) {
+    fn write_byte(&mut self, _address: u16, _b: u8) {
         todo!()
     }
 }
