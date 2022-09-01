@@ -39,7 +39,42 @@ pub trait Cartridge: MemoryBus {
  
 }
 
-impl Cartridge for ROM {}
+
+pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
+
+    let mut buf = Vec::new();
+    File::open(p).and_then(|mut f| f.read_to_end(&mut buf)).unwrap();  
+    // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
+    if buf.len() < 0x0150 {
+        panic!("missing info in cartridge header")
+    }
+
+    // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
+    let cartridge: Box<dyn Cartridge> = match buf[0x0147] {
+
+        0x00 => Box::new(ROM::new(buf)),
+
+        e => panic!("unsupported cartridge type, {}", e)
+    };
+
+    cartridge.verify_logo();
+    cartridge.verify_checksum();
+    cartridge
+}
+
+// byte 0x0149 indicates size of RAM, if any.
+// https://gbdev.io/pandocs/The_Cartridge_Header.html#0149---ram-size
+fn ram_size(n: u8) -> usize {
+    let kb = 1024;
+    match n {
+        0x0..=0x01 => 0,
+        0x02 => 8 * kb,
+        0x03 => 32 * kb,
+        0x04 => 128 * kb,
+        0x05 => 64 * kb,
+        e => panic!("unsupported RAM size, {:#02x}", e) 
+    }
+}
 
 
 // Small games of not more than 32 KiB ROM do not require a MBC chip for ROM banking.
@@ -59,61 +94,7 @@ impl MemoryBus for ROM {
     fn write_byte(&mut self, _: u16, _: u8) {}
 }
 
-
-
-pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
-
-    let mut buf = Vec::new();
-    let mut f = File::open(p).unwrap();
-    f.read_to_end(&mut buf).unwrap();
-    
-    // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
-    if buf.len() < 0x0150 {
-        panic!("missing info in cartridge header")
-    }
-    let _rom_size = rom_size(buf[0x0148]);
-    let _ram_size = ram_size(buf[0x0149]);
-
-    // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
-    let cartridge: Box<dyn Cartridge> = match buf[0x0147] {
-
-        0x00 => Box::new(ROM::new(buf)),
-
-        e => panic!("unsupported cartridge type, {}", e)
-    };
-
-    cartridge.verify_logo();
-    cartridge.verify_checksum();
-    cartridge
-}
-
-// byte 0x0148 indicates size of ROM.
-// https://gbdev.io/pandocs/The_Cartridge_Header.html#0148---rom-size
-fn rom_size(n: u8) -> usize {
-    let bank = 16384;
-    match n {
-        0x00..=0x08 => 32_768 * (1 << n),
-        0x52 => 72 * bank,
-        0x53 => 80 * bank,
-        0x54 => 96 * bank,
-        e => panic!("unsupported ROM size: {}", e)
-    }
-}
-
-// byte 0x0149 indicates size of RAM, if any.
-// https://gbdev.io/pandocs/The_Cartridge_Header.html#0149---ram-size
-fn ram_size(n: u8) -> usize {
-    let kb = 1024;
-    match n {
-        0x0..=0x01 => 0,
-        0x02 => 8 * kb,
-        0x03 => 32 * kb,
-        0x04 => 128 * kb,
-        0x05 => 64 * kb,
-        e => panic!("unsupported RAM size, {:#02x}", e) 
-    }
-}
-
+impl Cartridge for ROM {}
 
 
 #[cfg(test)]

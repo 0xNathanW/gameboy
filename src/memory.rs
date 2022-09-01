@@ -2,7 +2,6 @@ use std::path::Path;
 
 use crate::cartridge::{Cartridge, self};
 
-
 const HRAM_SIZE: usize = 127;        // High RAM.
 const WRAM_SIZE:  usize = 32_768;    // 32KB Work RAM.
 
@@ -37,7 +36,7 @@ pub struct Memory {
 impl Memory {
     
     pub fn new(path: &Path) -> Self {
-        let mut mem = Self {
+        let mem = Self {
             cartridge: cartridge::open_cartridge(path),
             wram: [0; WRAM_SIZE],
             hram: [0; HRAM_SIZE],
@@ -64,11 +63,19 @@ General Memory Map
 
 impl MemoryBus for Memory {
 
-    fn read_byte(&self, _address: u16) -> u8 {
-        todo!()
+    fn read_byte(&self, address: u16) -> u8 {
+        match address {
+            0x0000..=0x7fff => self.cartridge.read_byte(address),
+            
+            _ => 0
+        }
     }
 
-    fn write_byte(&mut self, _address: u16, _b: u8) {
-        todo!()
+    fn write_byte(&mut self, address: u16, b: u8) {
+        match address {
+            0x0000..=0x7fff => self.cartridge.write_byte(address, b),
+            
+            _ => {}
+        }
     }
 }
