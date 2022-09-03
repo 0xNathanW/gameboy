@@ -17,10 +17,10 @@ pub struct Registers {
 }
 
 pub enum Flag {
-    Zero,
-    Subtract,
-    HalfCarry,
-    Carry,
+    Z,
+    N,
+    H,
+    C,
 }
 
 // Flags implemented in bitmask.
@@ -85,19 +85,19 @@ impl Registers {
 
     pub fn get_flag(&self, flag: Flag) -> bool {
         match flag {
-            Flag::Zero =>       self.f & ZERO_FLAG != 0,
-            Flag::Subtract =>   self.f & SUBTRACT_FLAG != 0,
-            Flag::HalfCarry =>  self.f & HALF_CARRY_FLAG != 0,
-            Flag::Carry =>      self.f & CARRY_FLAG != 0,
+            Flag::Z =>       self.f & ZERO_FLAG != 0,
+            Flag::N =>   self.f & SUBTRACT_FLAG != 0,
+            Flag::H =>  self.f & HALF_CARRY_FLAG != 0,
+            Flag::C =>      self.f & CARRY_FLAG != 0,
         }
     }
 
     pub fn set_flag(&mut self, flag: Flag, value: bool) {
         match flag {
-            Flag::Zero =>       self.f = if value { self.f | ZERO_FLAG } else { self.f & !ZERO_FLAG },
-            Flag::Subtract =>   self.f = if value { self.f | SUBTRACT_FLAG } else { self.f & !SUBTRACT_FLAG },
-            Flag::HalfCarry =>  self.f = if value { self.f | HALF_CARRY_FLAG } else { self.f & !HALF_CARRY_FLAG },
-            Flag::Carry =>      self.f = if value { self.f | CARRY_FLAG } else { self.f & !CARRY_FLAG },
+            Flag::Z =>       self.f = if value { self.f | ZERO_FLAG } else { self.f & !ZERO_FLAG },
+            Flag::N =>   self.f = if value { self.f | SUBTRACT_FLAG } else { self.f & !SUBTRACT_FLAG },
+            Flag::H =>  self.f = if value { self.f | HALF_CARRY_FLAG } else { self.f & !HALF_CARRY_FLAG },
+            Flag::C =>      self.f = if value { self.f | CARRY_FLAG } else { self.f & !CARRY_FLAG },
         }
     }
 }
