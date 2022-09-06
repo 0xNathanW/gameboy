@@ -2,7 +2,7 @@ use std::io::Read;
 use std::path::Path;
 use std::fs::File;
 
-use crate::memory::MemoryBus;
+use crate::bus::MemoryBus;
 
 // Nintendo logo bitmap, cartridge address range $0104-$0133 must match.
 // https://gbdev.io/pandocs/The_Cartridge_Header.html#0104-0133---nintendo-logo
@@ -98,7 +98,7 @@ impl Cartridge for ROM {}
 
 
 #[cfg(test)]
-mod tedst {
+mod test {
 
     use std::path::Path;
     use crate::cartridge::open_cartridge;

@@ -32,7 +32,7 @@ const CARRY_FLAG: u8        = 0b0001_0000;
 impl Registers {
 
     pub fn new() -> Self {
-        let mut reg = Registers{
+        let mut reg = Self {
             sp: 0xFFFE,
             pc: 0x100,
             ..Default::default()
@@ -106,6 +106,7 @@ impl Registers {
 mod test {
 
     use super::Registers;
+    use super::Flag::{Z, H, N};
 
     #[test]
     fn new() {
@@ -132,4 +133,16 @@ mod test {
         assert_eq!(reg.get_af(), 0b0011110110101010)
     }
 
+    #[test]
+    fn flags() {
+        let mut reg = Registers::new();
+
+        reg.set_flag(Z, true);
+        reg.set_flag(H, true);
+        reg.set_flag(N, false);
+
+        assert!(reg.get_flag(Z));
+        assert!(reg.get_flag(H));
+        assert!(!reg.get_flag(N));
+    }
 }

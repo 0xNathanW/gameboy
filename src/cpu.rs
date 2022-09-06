@@ -1,6 +1,6 @@
 use std::path::Path;
-
-use crate::memory::{Memory, MemoryBus};
+use super::bus::MemoryBus;
+use super::memory::Memory;
 use super::registers::Registers;
 use super::registers::Flag::{C, N, H, Z};
 
@@ -13,8 +13,8 @@ pub struct CPU {
 
 impl CPU {
     
-    pub fn new(path: &Path) -> CPU {
-        CPU {
+    pub fn new(path: &Path) -> Self {
+        Self {
             regs: Registers::new(),
             mem: Memory::new(path),
             halted: false,
@@ -230,7 +230,6 @@ impl CPU {
         self.regs.set_flag(N, false);
         self.regs.set_flag(H, true);
     }
-
 
     // Execute next opcode, returns number of cycles.
     fn execute(&mut self) -> u32 {
@@ -563,6 +562,117 @@ impl CPU {
             0x0F => { self.regs.a = self.alu_rrc(self.regs.a); 4 },
             0x1F => { self.regs.a = self.alu_rr(self.regs.a); 4 },
 
+             // DAA - decimal adjust register a.
+            0x27 => {
+                let mut a = self.regs.a;
+                let mut correction = if self.regs.get_flag(C) { 0x60 } else { 0 };
+                if self.regs.get_flag(H) {
+                    correction |= 0x06;
+                }
+                if !self.regs.get_flag(N) {
+                    if a & 0x0F > 0x09 {
+                        correction |= 0x06;
+                    }
+                    if a > 0x99 {
+                        correction |= 0x60;
+                    }
+                    a = a.wrapping_add(correction);
+                } else {
+                    a = a.wrapping_sub(correction);
+                }
+
+                self.regs.set_flag(C, correction >= 0x60);
+                self.regs.set_flag(H, false);
+                self.regs.set_flag(Z, a == 0);
+                self.regs.a = a;
+                4
+            },
+
+            // Jumps - jump to address if condition is true.
+            0xC2 => { let addr = self.nxt_word(); if !self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
+            0xCA => { let addr = self.nxt_word(); if self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
+            0xD2 => { let addr = self.nxt_word(); if !self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
+            0xDA => { let addr = self.nxt_word(); if self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
+            // JP (HL) jump to address contained in hl.
+            0xE9 => { self.regs.pc = self.regs.get_hl(); 4 },
+            // JR n - add n to current address and jump to it.
+            0x18 => { self.regs.pc += self.nxt_byte() as u16; 8 },
+            // JR cc, n - if condition true, add n to current address and jump to it.
+            0x20 => { 
+                let addr = self.regs.pc + self.nxt_byte() as u16;  
+                if !self.regs.get_flag(Z) { self.regs.pc = addr; 12 } else { 8 }
+            },
+            0x28 => {
+                let addr = self.regs.pc + self.nxt_byte() as u16;
+                if self.regs.get_flag(Z) { self.regs.pc = addr; 12 } else { 8 }
+            },
+            0x30 => {
+                let addr = self.regs.pc + self.nxt_byte() as u16;
+                if !self.regs.get_flag(C) { self.regs.pc = addr; 12 } else { 8 } 
+            },
+            0x38 => {
+                let addr = self.regs.pc + self.nxt_byte() as u16;
+                if self.regs.get_flag(C) { self.regs.pc = addr; 12 } else { 8 }
+            },
+
+            // Calls
+            // CALL nn - push address of next instruction onto stack and then jump to address nn.
+            0xCD => { let addr = self.nxt_word(); self.stack_push(self.regs.pc); self.regs.pc = addr; 12 },
+            // CALL cc, nn - call address n if following condition is true.
+            0xC4 => {
+                let addr = self.nxt_word();
+                if !self.regs.get_flag(Z) {
+                    self.stack_push(self.regs.pc);
+                    self.regs.pc = addr;
+                    24
+                } else { 12 }
+            },
+            0xCC => {
+                let addr = self.nxt_word();
+                if self.regs.get_flag(Z) {
+                    self.stack_push(self.regs.pc);
+                    self.regs.pc = addr;
+                    24
+                } else { 12 }
+            },
+            0xD4 => {
+                let addr = self.nxt_word();
+                if !self.regs.get_flag(C) {
+                    self.stack_push(self.regs.pc);
+                    self.regs.pc = addr;
+                    24
+                } else { 12 }
+            },
+            0xDC => {
+                let addr = self.nxt_word();
+                if self.regs.get_flag(C) {
+                    self.stack_push(self.regs.pc);
+                    self.regs.pc = addr;
+                    24
+                } else { 12 } 
+            },
+            
+            // Restarts
+            // RST n - push present address onto stack, jump to address $0000 + n.
+            0xC7 => { self.stack_push(self.regs.pc); self.regs.pc = 0x00; 32 },
+            0xCF => { self.stack_push(self.regs.pc); self.regs.pc = 0x08; 32 },
+            0xD7 => { self.stack_push(self.regs.pc); self.regs.pc = 0x10; 32 },
+            0xDF => { self.stack_push(self.regs.pc); self.regs.pc = 0x18; 32 },
+            0xE7 => { self.stack_push(self.regs.pc); self.regs.pc = 0x20; 32 },
+            0xEF => { self.stack_push(self.regs.pc); self.regs.pc = 0x28; 32 },
+            0xF7 => { self.stack_push(self.regs.pc); self.regs.pc = 0x30; 32 },
+            0xFF => { self.stack_push(self.regs.pc); self.regs.pc = 0x38; 32 },
+
+            // Returns
+            // RET - pop two bytes from stack and jump to that address.
+            0xC9 => { self.regs.pc = self.stack_pop(); 8 },
+            0xC0 => { if !self.regs.get_flag(Z) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
+            0xC8 => { if self.regs.get_flag(Z) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
+            0xD0 => { if !self.regs.get_flag(C) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
+            0xD8 => { if self.regs.get_flag(C) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
+            // RETI - pop two bytes from stack and jump to that address then enables interrupts.
+            0xD9 => { self.regs.pc = self.nxt_word(); self.ei = true; 8 },
+
             0xCB => {   // Instruction set extension.
                 let cb_opcode = self.nxt_byte();
                 match cb_opcode {
@@ -733,6 +843,216 @@ impl CPU {
                     0x7D => { self.alu_bit(7, self.regs.l); 8 },
                     0x7E => { let a = self.mem.read_byte(self.regs.get_hl()); self.alu_bit(7, a); 16 },
                     
+                    // SET b, r - set bit b in register r.
+                    0xC7 => { self.regs.a |= 1 << 0; 8 },
+                    0xC0 => { self.regs.b |= 1 << 0; 8 },
+                    0xC1 => { self.regs.c |= 1 << 0; 8 },
+                    0xC2 => { self.regs.d |= 1 << 0; 8 },
+                    0xC3 => { self.regs.e |= 1 << 0; 8 },
+                    0xC4 => { self.regs.h |= 1 << 0; 8 },
+                    0xC5 => { self.regs.l |= 1 << 0; 8 },
+                    0xC6 => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) | (1 << 0);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xCF => { self.regs.a |= 1 << 1; 8 },
+                    0xC8 => { self.regs.b |= 1 << 1; 8 },
+                    0xC9 => { self.regs.c |= 1 << 1; 8 },
+                    0xCA => { self.regs.d |= 1 << 1; 8 },
+                    0xCB => { self.regs.e |= 1 << 1; 8 },
+                    0xCC => { self.regs.h |= 1 << 1; 8 },
+                    0xCD => { self.regs.l |= 1 << 1; 8 },
+                    0xCE => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) | (1 << 1);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+                    
+                    0xD7 => { self.regs.a |= 1 << 2; 8 },
+                    0xD0 => { self.regs.b |= 1 << 2; 8 },
+                    0xD1 => { self.regs.c |= 1 << 2; 8 },
+                    0xD2 => { self.regs.d |= 1 << 2; 8 },
+                    0xD3 => { self.regs.e |= 1 << 2; 8 },
+                    0xD4 => { self.regs.h |= 1 << 2; 8 },
+                    0xD5 => { self.regs.l |= 1 << 2; 8 },
+                    0xD6 => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) | (1 << 2);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+                    
+                    0xDF => { self.regs.a |= 1 << 3; 8 },
+                    0xD8 => { self.regs.b |= 1 << 3; 8 },
+                    0xD9 => { self.regs.c |= 1 << 3; 8 },
+                    0xDA => { self.regs.d |= 1 << 3; 8 },
+                    0xDB => { self.regs.e |= 1 << 3; 8 },
+                    0xDC => { self.regs.h |= 1 << 3; 8 },
+                    0xDD => { self.regs.l |= 1 << 3; 8 },
+                    0xDE => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) | (1 << 3);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xE7 => { self.regs.a |= 1 << 4; 8 },
+                    0xE0 => { self.regs.b |= 1 << 4; 8 },
+                    0xE1 => { self.regs.c |= 1 << 4; 8 },
+                    0xE2 => { self.regs.d |= 1 << 4; 8 },
+                    0xE3 => { self.regs.e |= 1 << 4; 8 },
+                    0xE4 => { self.regs.h |= 1 << 4; 8 },
+                    0xE5 => { self.regs.l |= 1 << 4; 8 },
+                    0xE6 => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) | (1 << 4);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xEF => { self.regs.a |= 1 << 5; 8 },
+                    0xE8 => { self.regs.b |= 1 << 5; 8 },
+                    0xE9 => { self.regs.c |= 1 << 5; 8 },
+                    0xEA => { self.regs.d |= 1 << 5; 8 },
+                    0xEB => { self.regs.e |= 1 << 5; 8 },
+                    0xEC => { self.regs.h |= 1 << 5; 8 },
+                    0xED => { self.regs.l |= 1 << 5; 8 },
+                    0xEE => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) | (1 << 5);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xF7 => { self.regs.a |= 1 << 6; 8 },
+                    0xF0 => { self.regs.b |= 1 << 6; 8 },
+                    0xF1 => { self.regs.c |= 1 << 6; 8 },
+                    0xF2 => { self.regs.d |= 1 << 6; 8 },
+                    0xF3 => { self.regs.e |= 1 << 6; 8 },
+                    0xF4 => { self.regs.h |= 1 << 6; 8 },
+                    0xF5 => { self.regs.l |= 1 << 6; 8 },
+                    0xF6 => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) | (1 << 6);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xFF => { self.regs.a |= 1 << 7; 8 },
+                    0xF8 => { self.regs.b |= 1 << 7; 8 },
+                    0xF9 => { self.regs.c |= 1 << 7; 8 },
+                    0xFA => { self.regs.d |= 1 << 7; 8 },
+                    0xFB => { self.regs.e |= 1 << 7; 8 },
+                    0xFC => { self.regs.h |= 1 << 7; 8 },
+                    0xFD => { self.regs.l |= 1 << 7; 8 },
+                    0xFE => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) | (1 << 7);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    // RES b, r - reset bit b in register r.
+                    0x87 => { self.regs.a &= !(1 << 0); 8 },
+                    0x80 => { self.regs.b &= !(1 << 0); 8 },
+                    0x81 => { self.regs.c &= !(1 << 0); 8 },
+                    0x82 => { self.regs.d &= !(1 << 0); 8 },
+                    0x83 => { self.regs.e &= !(1 << 0); 8 },
+                    0x84 => { self.regs.h &= !(1 << 0); 8 },
+                    0x85 => { self.regs.l &= !(1 << 0); 8 },
+                    0x86 => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) & !(1 << 0);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0x8F => { self.regs.a &= !(1 << 1); 8 },
+                    0x88 => { self.regs.b &= !(1 << 1); 8 },
+                    0x89 => { self.regs.c &= !(1 << 1); 8 },
+                    0x8A => { self.regs.d &= !(1 << 1); 8 },
+                    0x8B => { self.regs.e &= !(1 << 1); 8 },
+                    0x8C => { self.regs.h &= !(1 << 1); 8 },
+                    0x8D => { self.regs.l &= !(1 << 1); 8 },
+                    0x8E => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) & !(1 << 1);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+                    
+                    0x97 => { self.regs.a &= !(1 << 2); 8 },
+                    0x90 => { self.regs.b &= !(1 << 2); 8 },
+                    0x91 => { self.regs.c &= !(1 << 2); 8 },
+                    0x92 => { self.regs.d &= !(1 << 2); 8 },
+                    0x93 => { self.regs.e &= !(1 << 2); 8 },
+                    0x94 => { self.regs.h &= !(1 << 2); 8 },
+                    0x95 => { self.regs.l &= !(1 << 2); 8 },
+                    0x96 => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) & !(1 << 2);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+                    
+                    0x9F => { self.regs.a &= !(1 << 3); 8 },
+                    0x98 => { self.regs.b &= !(1 << 3); 8 },
+                    0x99 => { self.regs.c &= !(1 << 3); 8 },
+                    0x9A => { self.regs.d &= !(1 << 3); 8 },
+                    0x9B => { self.regs.e &= !(1 << 3); 8 },
+                    0x9C => { self.regs.h &= !(1 << 3); 8 },
+                    0x9D => { self.regs.l &= !(1 << 3); 8 },
+                    0x9E => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) & !(1 << 3);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xA7 => { self.regs.a &= !(1 << 4); 8 },
+                    0xA0 => { self.regs.b &= !(1 << 4); 8 },
+                    0xA1 => { self.regs.c &= !(1 << 4); 8 },
+                    0xA2 => { self.regs.d &= !(1 << 4); 8 },
+                    0xA3 => { self.regs.e &= !(1 << 4); 8 },
+                    0xA4 => { self.regs.h &= !(1 << 4); 8 },
+                    0xA5 => { self.regs.l &= !(1 << 4); 8 },
+                    0xA6 => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) & !(1 << 4);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xAF => { self.regs.a &= !(1 << 5); 8 },
+                    0xA8 => { self.regs.b &= !(1 << 5); 8 },
+                    0xA9 => { self.regs.c &= !(1 << 5); 8 },
+                    0xAA => { self.regs.d &= !(1 << 5); 8 },
+                    0xAB => { self.regs.e &= !(1 << 5); 8 },
+                    0xAC => { self.regs.h &= !(1 << 5); 8 },
+                    0xAD => { self.regs.l &= !(1 << 5); 8 },
+                    0xAE => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) & !(1 << 5);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xB7 => { self.regs.a &= !(1 << 6); 8 },
+                    0xB0 => { self.regs.b &= !(1 << 6); 8 },
+                    0xB1 => { self.regs.c &= !(1 << 6); 8 },
+                    0xB2 => { self.regs.d &= !(1 << 6); 8 },
+                    0xB3 => { self.regs.e &= !(1 << 6); 8 },
+                    0xB4 => { self.regs.h &= !(1 << 6); 8 },
+                    0xB5 => { self.regs.l &= !(1 << 6); 8 },
+                    0xB6 => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) & !(1 << 6);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
+                    0xBF => { self.regs.a &= !(1 << 7); 8 },
+                    0xB8 => { self.regs.b &= !(1 << 7); 8 },
+                    0xB9 => { self.regs.c &= !(1 << 7); 8 },
+                    0xBA => { self.regs.d &= !(1 << 7); 8 },
+                    0xBB => { self.regs.e &= !(1 << 7); 8 },
+                    0xBC => { self.regs.h &= !(1 << 7); 8 },
+                    0xBD => { self.regs.l &= !(1 << 7); 8 },
+                    0xBE => {
+                        let val = self.mem.read_byte(self.regs.get_hl()) & !(1 << 7);
+                        self.mem.write_byte(self.regs.get_hl(), val);
+                        16
+                    },
+
                     // Swaps
                     0x37 => { self.regs.a = self.alu_swap(self.regs.a); 8 },
                     0x30 => { self.regs.b = self.alu_swap(self.regs.b); 8 },
@@ -747,40 +1067,17 @@ impl CPU {
                         16
                     },
 
-                    // DAA - decimal adjust register a.
-                    0x27 => {
-                        let mut a = self.regs.a;
-                        let mut correction = if self.regs.get_flag(C) { 0x60 } else { 0 };
-                        if self.regs.get_flag(H) {
-                            correction |= 0x06;
-                        }
-                        if !self.regs.get_flag(N) {
-                            if a & 0x0F > 0x09 {
-                                correction |= 0x06;
-                            }
-                            if a > 0x99 {
-                                correction |= 0x60;
-                            }
-                            a = a.wrapping_add(correction);
-                        } else {
-                            a = a.wrapping_sub(correction);
-                        }
-
-                        self.regs.set_flag(C, correction >= 0x60);
-                        self.regs.set_flag(H, false);
-                        self.regs.set_flag(Z, a == 0);
-                        self.regs.a = a;
-                        4
-                    },
-
-                    e => panic!("unsuppored opcode: {:#2X}", e)
                 }
             }
-
-
-
             e => panic!("unsuppored opcode: {:#2X}", e)
         };
         cycles
     }
+}
+
+
+#[cfg(test)]
+mod test {
+
+
 }
