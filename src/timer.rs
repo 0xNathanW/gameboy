@@ -1,4 +1,9 @@
+use std::cell::{RefCell};
+use std::rc::Rc;
+
+use super::bit::Bit;
 use super::bus::MemoryBus;
+use super::intf::Intf;
 
 #[derive(Default)]
 pub struct Timer {
@@ -27,6 +32,8 @@ pub struct Timer {
     */
     enable: bool,
     period: u32,
+
+    intf:   Rc<RefCell<Intf>>
 }
 
 impl MemoryBus for Timer {
@@ -37,16 +44,16 @@ impl MemoryBus for Timer {
             0xFF05 => self.tima,
             0xFF06 => self.tma,
             0xFF07 => {
-                (if self.enable { 0b00000100 } else { 0 }) |
-                (
-                    match self.period {
-                        1024 => 0, 
-                        16 => 1,
-                        64 => 2,
-                        256 => 3,
-                        _ => panic!("timer period not supported (read) {:4X}", self.period)
-                    }
-                )
+                let mut b: u8 = 0;
+                if self.enable { b.set(2) };
+                match self.period {
+                    1024 => b.set(0),
+                    16   => b.set(1),
+                    64   => b.set(2),
+                    256  => b.set(3),
+                    _ => panic!("timer period not supported (read) {:4X}", self.period)
+                }
+                b
             },
             _ => panic!("address for timer not supported: {:?}", addr)
         }
@@ -58,7 +65,7 @@ impl MemoryBus for Timer {
             0xFF05 => { self.tima = b },
             0xFF06 => { self.tma = b },
             0xFF07 => {
-                self.enable = b & 0b00000100 != 0;
+                self.enable = b.bit(2);
                 self.period = match b & 0b00000011 {
                     0 => 1024,
                     1 => 16, 
@@ -75,9 +82,10 @@ impl MemoryBus for Timer {
 
 impl Timer {
     
-    pub fn new() -> Self {
+    pub fn new(intf: Rc<RefCell<Intf>>) -> Self {
         Self {
             period: 256,
+            intf, 
             ..Timer::default()
         }
     }

@@ -1,42 +1,10 @@
-use std::path::Path;
-use super::bus::MemoryBus;
-use super::memory::Memory;
-use super::registers::Registers;
-use super::registers::Flag::{C, N, H, Z};
-
-pub struct CPU {
-    regs: Registers,
-    pub mem: Memory, 
-    halted: bool,
-    ei: bool,
-}
+use crate::bus::MemoryBus;
+use super::CPU;
+use super::registers::Flag::{C, N, Z, H};
 
 impl CPU {
-    
-    pub fn new(path: &Path) -> Self {
-        Self {
-            regs: Registers::new(),
-            mem: Memory::new(path),
-            halted: false,
-            ei: false,
-        }
-    }
 
-    // Reads next byte at stack pointer, increments pointer.
-    fn nxt_byte(&mut self) -> u8 {
-        let b = self.mem.read_byte(self.regs.pc);
-        self.regs.pc += 1;
-        b
-    }
-
-    // Reads next 2 bytes (word) at stack pointer, incrementing twice.
-    fn nxt_word(&mut self) -> u16 {
-        let w = self.mem.read_word(self.regs.pc);
-        self.regs.pc += 2;
-        w
-    }
-
-    fn stack_push(&mut self, val: u16) {
+    pub fn stack_push(&mut self, val: u16) {
         self.regs.sp -= 2;
         self.mem.write_word(self.regs.sp, val);
     }
@@ -52,10 +20,10 @@ impl CPU {
         let a: u8 = self.regs.a;
         let c: u8 = if self.regs.get_flag(C) && carry {1} else {0};
         let res = a.wrapping_add(n).wrapping_add(c);
-        self.regs.set_flag(C, a + n + c > 0xFF);                // Set if carry from bit 7.        
-        self.regs.set_flag(H, (a&0xF) + (n&0xF) + c > 0xF);     // Set if carry from bit 3. 
-        self.regs.set_flag(N, false);                           // Reset.
-        self.regs.set_flag(Z, res == 0);                        // Set if result is 0.
+        self.regs.set_flag(C, (a as u16) + (n as u16) + (c as u16) > 0xFF);     // Set if carry from bit 7.        
+        self.regs.set_flag(H, (a&0xF) + (n&0xF) + c > 0xF);                     // Set if carry from bit 3. 
+        self.regs.set_flag(N, false);                                           // Reset.
+        self.regs.set_flag(Z, res == 0);                                        // Set if result is 0.
         self.regs.a = res;
     }
 
@@ -232,8 +200,7 @@ impl CPU {
     }
 
     // Execute next opcode, returns number of cycles.
-    fn execute(&mut self) -> u32 {
-        let opcode = self.nxt_byte();
+    pub fn execute(&mut self, opcode: u8) -> u32 {
         let cycles = match opcode {
 
             // http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
@@ -1073,11 +1040,4 @@ impl CPU {
         };
         cycles
     }
-}
-
-
-#[cfg(test)]
-mod test {
-
-
 }

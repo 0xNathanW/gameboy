@@ -1,7 +1,12 @@
-pub mod registers;
-pub mod memory;
+#![allow(dead_code)]
 pub mod cpu;
-pub mod gpu;
-pub mod cartridge;
-pub mod bus;
-pub mod timer;
+
+mod memory;
+mod gpu;
+mod cartridge;
+mod bus;
+mod timer;
+mod keypad;
+mod bit;
+mod serial;
+mod intf;

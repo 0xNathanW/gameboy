@@ -2,7 +2,7 @@ use std::io::Read;
 use std::path::Path;
 use std::fs::File;
 
-use crate::bus::MemoryBus;
+use super::bus::MemoryBus;
 
 // Nintendo logo bitmap, cartridge address range $0104-$0133 must match.
 // https://gbdev.io/pandocs/The_Cartridge_Header.html#0104-0133---nintendo-logo
@@ -11,6 +11,7 @@ const NINTENDO_LOGO: [u8; 48] = [
     0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E,
     0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
 ];
+
 
 pub trait Cartridge: MemoryBus {
     
@@ -51,12 +52,14 @@ pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
 
     // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
     let cartridge: Box<dyn Cartridge> = match buf[0x0147] {
-
+        // ROM only
         0x00 => Box::new(ROM::new(buf)),
+        // TODO: others
 
         e => panic!("unsupported cartridge type, {}", e)
     };
-
+    
+    // If verification of logo or checksum fails, program should panic.
     cartridge.verify_logo();
     cartridge.verify_checksum();
     cartridge
@@ -64,7 +67,7 @@ pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
 
 // byte 0x0149 indicates size of RAM, if any.
 // https://gbdev.io/pandocs/The_Cartridge_Header.html#0149---ram-size
-fn ram_size(n: u8) -> usize {
+fn _ram_size(n: u8) -> usize {
     let kb = 1024;
     match n {
         0x0..=0x01 => 0,
@@ -75,7 +78,6 @@ fn ram_size(n: u8) -> usize {
         e => panic!("unsupported RAM size, {:#02x}", e) 
     }
 }
-
 
 // Small games of not more than 32 KiB ROM do not require a MBC chip for ROM banking.
 pub struct ROM(Vec<u8>);
