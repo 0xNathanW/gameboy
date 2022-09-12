@@ -23,10 +23,10 @@ pub struct CPU {
 
 impl CPU {
     
-    pub fn new(path: &Path, cpu_test: bool) -> Self {
+    pub fn new(path: &Path, serial_print: bool) -> Self {
         Self {
             regs: Registers::new(),
-            mem: Memory::new(path, cpu_test),
+            mem: Memory::new(path, serial_print),
             halted: false,
             ei: false,
         }
@@ -43,6 +43,7 @@ impl CPU {
     fn nxt_word(&mut self) -> u16 {
         let w = self.mem.read_word(self.regs.pc);
         self.regs.pc += 2;
+        println!("word fetched: {}", w);
         w
     }
 
@@ -54,6 +55,7 @@ impl CPU {
             let opcode = self.nxt_byte(); 
             self.execute(opcode) 
         }
+        
     }
 
     /*
@@ -104,12 +106,12 @@ mod test {
 
     #[test]
     fn cpu_instructions() {
-        let rom_path = Path::new("./test_roms/drMario.gb");
+        let rom_path = Path::new("./test_roms/cpu_instrs.gb");
         assert!(rom_path.exists());
         let mut cpu = CPU::new(rom_path, true);
-        
-
-
-
+        let mut clocks = 0;
+        while clocks < 127_605_866 {
+            clocks += cpu.step();
+        }
     }
 }

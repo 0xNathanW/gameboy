@@ -201,8 +201,8 @@ impl CPU {
 
     // Execute next opcode, returns number of cycles.
     pub fn execute(&mut self, opcode: u8) -> u32 {
+        println!("Opcode: {:2X}", opcode);
         let cycles = match opcode {
-
             // http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
             
             // 8-bit loads 
@@ -556,6 +556,7 @@ impl CPU {
             },
 
             // Jumps - jump to address if condition is true.
+            0xC3 => { self.regs.pc = self.nxt_word(); 16 },
             0xC2 => { let addr = self.nxt_word(); if !self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
             0xCA => { let addr = self.nxt_word(); if self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
             0xD2 => { let addr = self.nxt_word(); if !self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
@@ -1033,11 +1034,11 @@ impl CPU {
                         self.mem.write_byte(self.regs.get_hl(), val); 
                         16
                     },
-
                 }
             }
             e => panic!("unsuppored opcode: {:#2X}", e)
         };
+        println!("Execution cycles: {}", cycles);
         cycles
     }
 }

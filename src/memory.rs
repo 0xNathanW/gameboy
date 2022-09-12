@@ -29,7 +29,7 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn new(path: &Path, cpu_test: bool) -> Self {
+    pub fn new(path: &Path, serial_print: bool) -> Self {
         let intf = Rc::new(RefCell::new(Intf::new()));
         let mut memory = Self {
             cartridge:  cartridge::open_cartridge(path),
@@ -38,7 +38,7 @@ impl Memory {
             hram:       [0; HRAM_SIZE],
             timer:      Timer::new(intf.clone()),
             keypad:     KeyPad::new(intf.clone()),
-            serial:     Serial::new(intf.clone(), cpu_test),
+            serial:     Serial::new(intf.clone(), serial_print),
             inte:       0,
             intf:       intf.clone(),
         };
@@ -72,7 +72,7 @@ impl MemoryBus for Memory {
 
             // I/O Ports 
             0xFF00 => self.keypad.read_byte(address),                     // Joypad input
-            0xFF01 ..= 0xFF02 => panic!("serial not yet implemented."),
+            0xFF01 ..= 0xFF02 => self.serial.read_byte(address),
             0xFF04 ..= 0xFF07 => self.timer.read_byte(address),           // Timer/Divider
             0xFF0F => self.intf.borrow().read_byte(address),
             0xFF40 ..= 0xFF4B => self.gpu.read_byte(address),   
@@ -95,7 +95,7 @@ impl MemoryBus for Memory {
             0xE000 ..= 0xEFFF => self.wram[address as usize - 0xE000] = b,
             0xFE00 ..= 0xFE9F => self.gpu.write_byte(address, b),
             0xFF00 => self.keypad.write_byte(address, b),
-            0xFF01 ..= 0xFF02 => panic!("serial not yet implemented."),
+            0xFF01 ..= 0xFF02 => self.serial.write_byte(address, b),
             0xFF04 ..= 0xFF07 => self.timer.write_byte(address, b),
             0xFF0F => self.intf.borrow_mut().write_byte(address, b),
             0xFF40 ..= 0xFF4B => self.gpu.write_byte(address, b),

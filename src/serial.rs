@@ -1,7 +1,7 @@
-use std::{rc::Rc, cell::{RefCell, Ref}};
+use std::{rc::Rc, cell::{RefCell}};
 
 use super::bus::MemoryBus;
-use super::intf::Intf;
+use super::intf::{Intf, InterruptSource};
 
 // Serial is for gameboy multiplayer functionality.
 // Since the emulator has no multiplayer it is used for testing puposes instead.
@@ -17,14 +17,14 @@ pub struct Serial {
     */
     control: u8,
 
-    cpu_test: bool, 
+    serial_print: bool, 
     
     intf: Rc<RefCell<Intf>>
 }
 
 impl Serial {
-    pub fn new(intf: Rc<RefCell<Intf>>, cpu_test: bool) -> Self { 
-        Self { intf, data: 0, control: 0, cpu_test: cpu_test } 
+    pub fn new(intf: Rc<RefCell<Intf>>, serial_print: bool) -> Self { 
+        Self { intf, data: 0, control: 0, serial_print } 
     }
 }
 
@@ -43,12 +43,13 @@ impl MemoryBus for Serial {
             0xFF01 => self.data = b,
             0xFF02 => {
                 self.control = b;
-                if b == 0x81 && self.cpu_test {
+                if b == 0x81 && self.serial_print {
+                    self.data = b;
+                    self.intf.borrow_mut().set_interrupt(InterruptSource::Serial);
                     println!("{} \n", b);
                 }
             },
             _ => panic!("accessing serial with address not supported (write).")
         }
     }
-
 }
