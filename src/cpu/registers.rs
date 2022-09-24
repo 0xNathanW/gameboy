@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 // CPU registers.
 // Registers af, bc, de and hl can be combined 
 // to form a 16-bit register pair.
@@ -11,6 +13,7 @@ pub struct Registers {
     pub e:  u8,
     pub h:  u8,
     pub l:  u8,
+    
     pub sp: u16,    // Stack pointer.
     pub pc: u16,    // Program counter.
 }
@@ -64,22 +67,22 @@ impl Registers {
     // Setters for 16-bit registers.
     pub fn set_af(&mut self, value: u16) {
         self.a = (value >> 8) as u8;
-        self.f = value as u8;
+        self.f = (value & 0xF0) as u8;
     }
 
     pub fn set_bc(&mut self, value: u16) {
         self.b = (value >> 8) as u8;
-        self.c = value as u8;
+        self.c = (value & 0xFF) as u8;
     }
 
     pub fn set_de(&mut self, value: u16) {
         self.d = (value >> 8) as u8;
-        self.e = value as u8;
+        self.e = (value & 0xFF) as u8;
     }
 
     pub fn set_hl(&mut self, value: u16) {
         self.h = (value >> 8) as u8;
-        self.l = value as u8;
+        self.l = (value & 0xFF) as u8;
     }
 
     pub fn get_flag(&self, flag: Flag) -> bool {
@@ -99,6 +102,24 @@ impl Registers {
             Flag::C =>  self.f = if value { self.f | CARRY_FLAG } else { self.f & !CARRY_FLAG },
         }
     }
+}
+
+impl Debug for Registers {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "Registers {{
+                af: {:#06X},
+                bc: {:#06X},
+                de: {:#06X},
+                hl: {:#06X},
+                flags - Z: {}, N: {}, H: {}, C: {},
+                sp: {:#06X},
+                pc: {:#06X},
+            }}", 
+            self.get_af(), self.get_bc(), self.get_de(), self.get_hl(),
+            self.get_flag(Flag::Z), self.get_flag(Flag::N), 
+            self.get_flag(Flag::H), self.get_flag(Flag::C),
+            self.sp, self.pc
+        )}
 }
 
 #[cfg(test)]
@@ -129,7 +150,8 @@ mod test {
         assert_eq!(reg.get_bc(), 0b00110001_11000111);
 
         reg.set_af(15786);
-        assert_eq!(reg.get_af(), 0b0011110110101010)
+        assert_eq!(reg.a, 0b00111101);
+        assert_eq!(reg.f, 0b10100000);
     }
 
     #[test]
@@ -145,3 +167,4 @@ mod test {
         assert!(!reg.get_flag(N));
     }
 }
+

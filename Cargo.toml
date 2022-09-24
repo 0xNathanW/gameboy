@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 minifb = "0.23"
+crossterm = "0.25.0"

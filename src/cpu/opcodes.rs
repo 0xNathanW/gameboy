@@ -4,17 +4,6 @@ use super::registers::Flag::{C, N, Z, H};
 
 impl CPU {
 
-    pub fn stack_push(&mut self, val: u16) {
-        self.regs.sp -= 2;
-        self.mem.write_word(self.regs.sp, val);
-    }
-
-    fn stack_pop(&mut self) -> u16 {
-        let val = self.mem.read_word(self.regs.sp);
-        self.regs.sp += 2;
-        val
-    }
-
     // ADD A, n - add n (+ carry) to A.
     fn alu_add(&mut self, n: u8, carry: bool) {
         let a: u8 = self.regs.a;
@@ -32,10 +21,10 @@ impl CPU {
         let a: u8 = self.regs.a;
         let c: u8 = if self.regs.get_flag(C) && carry {1} else {0};
         let res = a.wrapping_sub(n).wrapping_sub(c);
-        self.regs.set_flag(H, (a&0xF) < (n&0xF)+ c);    // Set if no borrow from bit 4.
-        self.regs.set_flag(C, a < n + c);               // Set if no borrow.
-        self.regs.set_flag(N, true);                    // Set.
-        self.regs.set_flag(Z, res == 0);                // Set if result is 0.
+        self.regs.set_flag(H, (a & 0xF) < (n & 0xF) + c);               // Set if no borrow from bit 4.
+        self.regs.set_flag(C, (a as u16) < (n as u16) + (c as u16));    // Set if no borrow.
+        self.regs.set_flag(N, true);                                    // Set.
+        self.regs.set_flag(Z, res == 0);                                // Set if result is 0.
         self.regs.a = res;
     }
     
@@ -64,7 +53,7 @@ impl CPU {
         let res = self.regs.a ^ n;
         self.regs.set_flag(Z, res == 0);    // Set if result is 0.
         self.regs.set_flag(N, false);       // Reset.
-        self.regs.set_flag(H, true);        // Set.
+        self.regs.set_flag(H, false);       // Reset.
         self.regs.set_flag(C, false);       // Reset.
         self.regs.a = res;
     }
@@ -81,7 +70,7 @@ impl CPU {
         let res = n.wrapping_add(1);
         self.regs.set_flag(Z, res == 0);                // Set if result is 0.
         self.regs.set_flag(N, false);                   // Reset.
-        self.regs.set_flag(H, (n&0xF) + 1 > 0xF);       // Set if carry from bit 3.
+        self.regs.set_flag(H, (n & 0xF) + 1 > 0xF);       // Set if carry from bit 3.
         res
     }
 
@@ -90,7 +79,7 @@ impl CPU {
         let res = n.wrapping_sub(1);
         self.regs.set_flag(Z, res == 0);        // Set if result is 0.
         self.regs.set_flag(N, true);            // Set.
-        self.regs.set_flag(H, (n&0xF) == 0);    // Set if no borrow from bit 4.
+        self.regs.set_flag(H, (n & 0xF) == 0);    // Set if no borrow from bit 4.
         res
     }
 
@@ -99,9 +88,9 @@ impl CPU {
     fn alu_add16(&mut self, n: u16) {
         let hl = self.regs.get_hl();
         let res = hl.wrapping_add(n);
-        self.regs.set_flag(N, false);                           // Reset.
-        self.regs.set_flag(H, (hl&0x7FF) + (n&0x7FF) > 0x7FF);  // Set if carry from bit 11.
-        self.regs.set_flag(C, (hl&0xFF) + (n&0xFF) > 0xFF);     // Set if carry from bit 15.
+        self.regs.set_flag(N, false);                               // Reset.
+        self.regs.set_flag(H, (hl & 0xFFF) + (n & 0xFFF) > 0xFFF);  // Set if carry from bit 11.
+        self.regs.set_flag(C, hl > 0xFFFF - n);     // Set if carry from bit 15.
         self.regs.set_hl(res);
     }
 
@@ -199,20 +188,25 @@ impl CPU {
         self.regs.set_flag(H, true);
     }
 
+    // JR - add n to the current address and jump to it.
+    fn jr(&mut self, n: u8) {
+        let n = n as i8;
+        self.regs.pc = ((self.regs.pc as u32 as i32) + (n as i32)) as u16;
+    }
+
     // Execute next opcode, returns number of cycles.
     pub fn execute(&mut self, opcode: u8) -> u32 {
-        println!("Opcode: {:2X}", opcode);
         let cycles = match opcode {
             // http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
             
             // 8-bit loads 
             // LD nn, n - put value nn into n.
-            0x06 => { self.regs.b = self.nxt_byte(); 8 },
-            0x0E => { self.regs.c = self.nxt_byte(); 8 },
-            0x16 => { self.regs.d = self.nxt_byte(); 8 },
-            0x1E => { self.regs.e = self.nxt_byte(); 8 },
-            0x26 => { self.regs.h = self.nxt_byte(); 8 },
-            0x2E => { self.regs.l = self.nxt_byte(); 8 },
+            0x06 => { self.regs.b = self.next_byte(); 8 },
+            0x0E => { self.regs.c = self.next_byte(); 8 },
+            0x16 => { self.regs.d = self.next_byte(); 8 },
+            0x1E => { self.regs.e = self.next_byte(); 8 },
+            0x26 => { self.regs.h = self.next_byte(); 8 },
+            0x2E => { self.regs.l = self.next_byte(); 8 },
             // LD r1, r2 - put value r2 into r1.
             0x7F => { 4 }, // when r1 == r2, nothing happens.
             0x78 => { self.regs.a = self.regs.b; 4 },
@@ -276,13 +270,19 @@ impl CPU {
             0x73 => { self.mem.write_byte(self.regs.get_hl(), self.regs.e); 8 },
             0x74 => { self.mem.write_byte(self.regs.get_hl(), self.regs.h); 8 },
             0x75 => { self.mem.write_byte(self.regs.get_hl(), self.regs.l); 8 },
-            0x36 => {let b = self.nxt_byte(); self.mem.write_byte(self.regs.get_hl(), b); 12 },
-            
+            0x36 => {let b = self.next_byte(); self.mem.write_byte(self.regs.get_hl(), b); 12 },
+
+            // LD A, n - put value into A.
+            0x0A => { self.regs.a = self.mem.read_byte(self.regs.get_bc()); 8 },
+            0x1A => { self.regs.a = self.mem.read_byte(self.regs.get_de()); 8 },
+            0xFA => { let b = self.next_word(); self.regs.a = self.mem.read_byte(b); 16 },
+            0x3E => { self.regs.a = self.next_byte(); 8 },
+
             // LD nn, A - put value A into nn.
             0x02 => { self.mem.write_byte(self.regs.get_bc(), self.regs.a); 8 },
             0x12 => { self.mem.write_byte(self.regs.get_de(), self.regs.a); 8 },
             0x77 => { self.mem.write_byte(self.regs.get_hl(), self.regs.a); 8 },
-            0xEA => { let nn = self.nxt_word(); self.mem.write_byte(nn, self.regs.a); 16 },
+            0xEA => { let nn = self.next_word(); self.mem.write_byte(nn, self.regs.a); 16 },
             
             // LD A, (C) - put value at address $FF00 + reg C into A.
             0xF2 => { self.regs.a = self.mem.read_byte(0xFF00 | self.regs.c as u16); 8 }, 
@@ -303,8 +303,9 @@ impl CPU {
             },
             // LD A, (HLI) - put value at address hl into A, increment hl.
             0x2A => {
-                self.regs.a = self.mem.read_byte(self.regs.get_hl());
-                self.regs.set_hl(self.regs.get_hl() + 1);
+                let hl = self.regs.get_hl();
+                self.regs.a = self.mem.read_byte(hl);
+                self.regs.set_hl(hl + 1);
                 8
             },
             // LD (HLI), A - put A into memory address hl, increment hl.
@@ -315,31 +316,34 @@ impl CPU {
             },
 
             // LDH (n), A - put A into memory address $FF00+n.
-            0xE0 => { let a = self.nxt_byte(); self.mem.write_byte(0xFF00 | a as u16, self.regs.a); 12 },
+            0xE0 => { 
+                let addr = 0xFF00 | self.next_byte() as u16;
+                self.mem.write_byte(addr, self.regs.a); 12 
+            },
             // LDH A, (n) - put memory address $FF00+n into A.
-            0xF0 => { let b = self.nxt_byte(); self.regs.a = self.mem.read_byte(0xFF00 | b as u16); 12 },
+            0xF0 => { let b = self.next_byte(); self.regs.a = self.mem.read_byte(0xFF00 | b as u16); 12 },
             
             // 16-bit loads.
             // LD n, nn - put value nn into n.
-            0x01 => { let nn = self.nxt_word(); self.regs.set_bc(nn); 12 },
-            0x11 => { let nn = self.nxt_word(); self.regs.set_de(nn); 12 },
-            0x21 => { let nn = self.nxt_word(); self.regs.set_hl(nn); 12 },
-            0x31 => { self.regs.sp = self.nxt_word(); 12 },
+            0x01 => { let nn = self.next_word(); self.regs.set_bc(nn); 12 },
+            0x11 => { let nn = self.next_word(); self.regs.set_de(nn); 12 },
+            0x21 => { let nn = self.next_word(); self.regs.set_hl(nn); 12 },
+            0x31 => { self.regs.sp = self.next_word(); 12 },
             // LD SP, HL - put hl into stack pointer.
             0xF9 => { self.regs.sp = self.regs.get_hl(); 8 },
             // LDHL SP, n - put SP + n effective address into hl.
             0xF8 => {
-                let b = self.nxt_byte() as u16;
+                let b = self.next_byte() as i8 as i16 as u16;
                 let sp = self.regs.sp;
                 self.regs.set_flag(Z, false);
                 self.regs.set_flag(N, false);
-                self.regs.set_flag(H, (sp & 0x000F) + (b & 0x000F) > 0x000F);
-                self.regs.set_flag(C, (sp & 0x00FF) + (b & 0x00FF) > 0x00FF);
-                self.regs.set_hl(b + sp); 
+                self.regs.set_flag(H, (sp & 0xF) + (b & 0xF) > 0xF);
+                self.regs.set_flag(C, (sp & 0xFF) + (b & 0xFF) > 0xFF);
+                self.regs.set_hl(sp.wrapping_add(b)); 
                 12
             },
             // LD (nn), SP - put stack pointer at address n.
-            0x08 => { let n = self.nxt_word(); self.mem.write_word(n, self.regs.sp);  20},
+            0x08 => { let n = self.next_word(); self.mem.write_word(n, self.regs.sp);  20},
             // PUSH nn - push register pair onto stack, decrement stack pointer twice.
             0xF5 => { self.stack_push(self.regs.get_af()); 16 },
             0xC5 => { self.stack_push(self.regs.get_bc()); 16 },
@@ -361,7 +365,7 @@ impl CPU {
             0x84 => { self.alu_add(self.regs.h, false); 4 },
             0x85 => { self.alu_add(self.regs.l, false); 4 },
             0x86 => { self.alu_add(self.mem.read_byte(self.regs.get_hl()), false); 8 },
-            0xC6 => { let b = self.nxt_byte(); self.alu_add(b, false); 8 },
+            0xC6 => { let b = self.next_byte(); self.alu_add(b, false); 8 },
             // Addition with carry.
             0x8F => { self.alu_add(self.regs.a, true); 4 },
             0x88 => { self.alu_add(self.regs.b, true); 4 },
@@ -371,7 +375,7 @@ impl CPU {
             0x8C => { self.alu_add(self.regs.h, true); 4 },
             0x8D => { self.alu_add(self.regs.l, true); 4 },
             0x8E => { self.alu_add(self.mem.read_byte(self.regs.get_hl()), true); 8 },
-            0xCE => { let b = self.nxt_byte(); self.alu_add(b, true); 8 },
+            0xCE => { let b = self.next_byte(); self.alu_add(b, true); 8 },
             // Subtraction.
             0x97 => { self.alu_sub(self.regs.a, false); 4 },
             0x90 => { self.alu_sub(self.regs.b, false); 4 },
@@ -381,7 +385,7 @@ impl CPU {
             0x94 => { self.alu_sub(self.regs.h, false); 4 },
             0x95 => { self.alu_sub(self.regs.l, false); 4 },
             0x96 => { self.alu_sub(self.mem.read_byte(self.regs.get_hl()), false); 8 },
-            0xD6 => { let b = self.nxt_byte(); self.alu_sub(b, false); 8 },
+            0xD6 => { let b = self.next_byte(); self.alu_sub(b, false); 8 },
             // Subtraction with carry.
             0x9F => { self.alu_sub(self.regs.a, true); 4 },
             0x98 => { self.alu_sub(self.regs.b, true); 4 },
@@ -391,6 +395,7 @@ impl CPU {
             0x9C => { self.alu_sub(self.regs.h, true); 4 },
             0x9D => { self.alu_sub(self.regs.l, true); 4 },
             0x9E => { self.alu_sub(self.mem.read_byte(self.regs.get_hl()), true); 8 },
+            0xDE => { let n = self.next_byte(); self.alu_sub(n, true); 8 },
             // AND
             0xA7 => { self.alu_and(self.regs.a); 4 },
             0xA0 => { self.alu_and(self.regs.b); 4 },
@@ -400,7 +405,7 @@ impl CPU {
             0xA4 => { self.alu_and(self.regs.h); 4 },
             0xA5 => { self.alu_and(self.regs.l); 4 },
             0xA6 => { self.alu_and(self.mem.read_byte(self.regs.get_hl())); 8 },
-            0xE6 => { let b = self.nxt_byte(); self.alu_and(b); 8 },
+            0xE6 => { let b = self.next_byte(); self.alu_and(b); 8 },
             // OR
             0xB7 => { self.alu_or(self.regs.a); 4 },
             0xB0 => { self.alu_or(self.regs.b); 4 },
@@ -410,7 +415,7 @@ impl CPU {
             0xB4 => { self.alu_or(self.regs.h); 4 },
             0xB5 => { self.alu_or(self.regs.l); 4 },
             0xB6 => { self.alu_or(self.mem.read_byte(self.regs.get_hl())); 8 },
-            0xF6 => { let b = self.nxt_byte(); self.alu_or(b); 8 },
+            0xF6 => { let b = self.next_byte(); self.alu_or(b); 8 },
             // XOR
             0xAF => { self.alu_xor(self.regs.a); 4 },
             0xA8 => { self.alu_xor(self.regs.b); 4 },
@@ -420,7 +425,7 @@ impl CPU {
             0xAC => { self.alu_xor(self.regs.h); 4 },
             0xAD => { self.alu_xor(self.regs.l); 4 },
             0xAE => { self.alu_xor(self.mem.read_byte(self.regs.get_hl())); 8 },
-            0xEE => { let b = self.nxt_byte(); self.alu_xor(b); 8 },
+            0xEE => { let b = self.next_byte(); self.alu_xor(b); 8 },
             // CP
             0xBF => { self.alu_cp(self.regs.a); 4 },
             0xB8 => { self.alu_cp(self.regs.b); 4 },
@@ -430,7 +435,7 @@ impl CPU {
             0xBC => { self.alu_cp(self.regs.h); 4 },
             0xBD => { self.alu_cp(self.regs.l); 4 },
             0xBE => { self.alu_cp(self.mem.read_byte(self.regs.get_hl())); 8 },
-            0xFE => { let b = self.nxt_byte(); self.alu_cp(b); 8 },
+            0xFE => { let b = self.next_byte(); self.alu_cp(b); 8 },
             // Increments
             0x3C => { self.regs.a = self.alu_inc(self.regs.a); 4 },
             0x04 => { self.regs.b = self.alu_inc(self.regs.b); 4 },
@@ -445,17 +450,17 @@ impl CPU {
                 12 
             },
             // Decrements
-            0x3D => { self.alu_dec(self.regs.a); 4 },
-            0x05 => { self.alu_dec(self.regs.b); 4 },
-            0x0D => { self.alu_dec(self.regs.c); 4 },
-            0x15 => { self.alu_dec(self.regs.d); 4 },
-            0x1D => { self.alu_dec(self.regs.e); 4 },
-            0x25 => { self.alu_dec(self.regs.h); 4 },
-            0x2D => { self.alu_dec(self.regs.l); 4 },
+            0x3D => { self.regs.a = self.alu_dec(self.regs.a); 4 },
+            0x05 => { self.regs.b = self.alu_dec(self.regs.b); 4 },
+            0x0D => { self.regs.c = self.alu_dec(self.regs.c); 4 },
+            0x15 => { self.regs.d = self.alu_dec(self.regs.d); 4 },
+            0x1D => { self.regs.e = self.alu_dec(self.regs.e); 4 },
+            0x25 => { self.regs.h = self.alu_dec(self.regs.h); 4 },
+            0x2D => { self.regs.l = self.alu_dec(self.regs.l); 4 },
             0x35 => { 
                 let val = self.alu_dec(self.mem.read_byte(self.regs.get_hl()));
                 self.mem.write_byte(self.regs.get_hl(), val); 
-                12 
+                12
             },
 
             // 16-bit arithmetic.
@@ -466,12 +471,12 @@ impl CPU {
             0x39 => { self.alu_add16(self.regs.sp); 8 },
             // ADD SP, n - add n to stack pointer.
             0xE8 => {
-                let b = self.nxt_byte() as u16;
+                let b = self.next_byte() as i8 as i16 as u16;
                 let sp = self.regs.sp;
                 self.regs.set_flag(Z, false);   // Reset.
                 self.regs.set_flag(N, false);   // Reset.
-                self.regs.set_flag(H, (sp&0xF) + (b&0xF) > 0xF);
-                self.regs.set_flag(C, (sp&0xFF) + (b&0xFF) > 0xFF);     
+                self.regs.set_flag(H, (sp & 0xF) + (b & 0xF) > 0xF);
+                self.regs.set_flag(C, (sp & 0xFF) + (b & 0xFF) > 0xFF);     
                 self.regs.sp = self.regs.sp.wrapping_add(b); 
                 16
             },
@@ -516,18 +521,18 @@ impl CPU {
             // HALT - power down CPU until interrupt occers. For energy conservation.
             0x76 => { self.halted = true; 4 },
             // STOP - halt CPU and LCD display until button pressed.
-            0x10 => {todo!()},
+            0x10 => { 4 },
 
             // DI - interupts disabled after instruciton after DI is executed.
-            0xF3 => { self.ei = false; 4 },
+            0xF3 => { self.disable_interrupt = 2; 4 },
             // EI - interrupts are enabled after instruction after EI is excuted.
-            0xFB => { self.ei = true; 4 },
+            0xFB => { self.enable_interrupt = 2; 4 },
 
             // Rotates and shifts for register A. // MAYBE SET Z FLAG AFTER.
-            0x07 => { self.regs.a = self.alu_rlc(self.regs.a); 4 },
-            0x17 => { self.regs.a = self.alu_rl(self.regs.a); 4 },
-            0x0F => { self.regs.a = self.alu_rrc(self.regs.a); 4 },
-            0x1F => { self.regs.a = self.alu_rr(self.regs.a); 4 },
+            0x07 => { self.regs.a = self.alu_rlc(self.regs.a); self.regs.set_flag(Z, false); 4 },
+            0x17 => { self.regs.a = self.alu_rl(self.regs.a); self.regs.set_flag(Z, false); 4 },
+            0x0F => { self.regs.a = self.alu_rrc(self.regs.a); self.regs.set_flag(Z, false); 4 },
+            0x1F => { self.regs.a = self.alu_rr(self.regs.a); self.regs.set_flag(Z, false); 4 },
 
              // DAA - decimal adjust register a.
             0x27 => {
@@ -556,39 +561,27 @@ impl CPU {
             },
 
             // Jumps - jump to address if condition is true.
-            0xC3 => { self.regs.pc = self.nxt_word(); 16 },
-            0xC2 => { let addr = self.nxt_word(); if !self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
-            0xCA => { let addr = self.nxt_word(); if self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
-            0xD2 => { let addr = self.nxt_word(); if !self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
-            0xDA => { let addr = self.nxt_word(); if self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
+            0xC3 => { self.regs.pc = self.next_word(); 16 },
+            0xC2 => { let addr = self.next_word(); if !self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
+            0xCA => { let addr = self.next_word(); if self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
+            0xD2 => { let addr = self.next_word(); if !self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
+            0xDA => { let addr = self.next_word(); if self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
             // JP (HL) jump to address contained in hl.
             0xE9 => { self.regs.pc = self.regs.get_hl(); 4 },
             // JR n - add n to current address and jump to it.
-            0x18 => { self.regs.pc += self.nxt_byte() as u16; 8 },
+            0x18 => { let b = self.next_byte(); self.jr(b); 8 },
             // JR cc, n - if condition true, add n to current address and jump to it.
-            0x20 => { 
-                let addr = self.regs.pc + self.nxt_byte() as u16;  
-                if !self.regs.get_flag(Z) { self.regs.pc = addr; 12 } else { 8 }
-            },
-            0x28 => {
-                let addr = self.regs.pc + self.nxt_byte() as u16;
-                if self.regs.get_flag(Z) { self.regs.pc = addr; 12 } else { 8 }
-            },
-            0x30 => {
-                let addr = self.regs.pc + self.nxt_byte() as u16;
-                if !self.regs.get_flag(C) { self.regs.pc = addr; 12 } else { 8 } 
-            },
-            0x38 => {
-                let addr = self.regs.pc + self.nxt_byte() as u16;
-                if self.regs.get_flag(C) { self.regs.pc = addr; 12 } else { 8 }
-            },
+            0x20 => { let b = self.next_byte(); if !self.regs.get_flag(Z) { self.jr(b); 12 } else { 8 } },
+            0x28 => { let b = self.next_byte(); if self.regs.get_flag(Z) { self.jr(b); 12 } else { 8 } },
+            0x30 => { let b = self.next_byte(); if !self.regs.get_flag(C) { self.jr(b); 12 } else { 8 } },
+            0x38 => { let b = self.next_byte(); if self.regs.get_flag(C) { self.jr(b); 12 } else { 8 } },
 
             // Calls
             // CALL nn - push address of next instruction onto stack and then jump to address nn.
-            0xCD => { let addr = self.nxt_word(); self.stack_push(self.regs.pc); self.regs.pc = addr; 12 },
+            0xCD => { let addr = self.next_word(); self.stack_push(self.regs.pc); self.regs.pc = addr; 24 },
             // CALL cc, nn - call address n if following condition is true.
             0xC4 => {
-                let addr = self.nxt_word();
+                let addr = self.next_word();
                 if !self.regs.get_flag(Z) {
                     self.stack_push(self.regs.pc);
                     self.regs.pc = addr;
@@ -596,7 +589,7 @@ impl CPU {
                 } else { 12 }
             },
             0xCC => {
-                let addr = self.nxt_word();
+                let addr = self.next_word();
                 if self.regs.get_flag(Z) {
                     self.stack_push(self.regs.pc);
                     self.regs.pc = addr;
@@ -604,7 +597,7 @@ impl CPU {
                 } else { 12 }
             },
             0xD4 => {
-                let addr = self.nxt_word();
+                let addr = self.next_word();
                 if !self.regs.get_flag(C) {
                     self.stack_push(self.regs.pc);
                     self.regs.pc = addr;
@@ -612,7 +605,7 @@ impl CPU {
                 } else { 12 }
             },
             0xDC => {
-                let addr = self.nxt_word();
+                let addr = self.next_word();
                 if self.regs.get_flag(C) {
                     self.stack_push(self.regs.pc);
                     self.regs.pc = addr;
@@ -633,16 +626,16 @@ impl CPU {
 
             // Returns
             // RET - pop two bytes from stack and jump to that address.
-            0xC9 => { self.regs.pc = self.stack_pop(); 8 },
+            0xC9 => { self.regs.pc = self.stack_pop(); 16 },
             0xC0 => { if !self.regs.get_flag(Z) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
             0xC8 => { if self.regs.get_flag(Z) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
             0xD0 => { if !self.regs.get_flag(C) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
             0xD8 => { if self.regs.get_flag(C) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
             // RETI - pop two bytes from stack and jump to that address then enables interrupts.
-            0xD9 => { self.regs.pc = self.nxt_word(); self.ei = true; 8 },
+            0xD9 => { self.regs.pc = self.stack_pop(); self.ime = true; 8 },
 
             0xCB => {   // Instruction set extension.
-                let cb_opcode = self.nxt_byte();
+                let cb_opcode = self.next_byte();
                 match cb_opcode {
 
                     // Rotates and shifts.
@@ -733,7 +726,7 @@ impl CPU {
                     0x3C => { self.regs.h = self.alu_srl(self.regs.h); 8 },
                     0x3D => { self.regs.l = self.alu_srl(self.regs.l); 8 },
                     0x3E => {
-                        let val = self.alu_sla(self.mem.read_byte(self.regs.get_hl()));
+                        let val = self.alu_srl(self.mem.read_byte(self.regs.get_hl()));
                         self.mem.write_byte(self.regs.get_hl(), val);
                         16
                     },
@@ -1038,7 +1031,6 @@ impl CPU {
             }
             e => panic!("unsuppored opcode: {:#2X}", e)
         };
-        println!("Execution cycles: {}", cycles);
         cycles
     }
 }

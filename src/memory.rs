@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 
+use super::serial::SerialCallback;
 use super::cartridge;
 use super::bus::MemoryBus;
 use super::timer::Timer;
@@ -11,11 +12,11 @@ use super::intf::Intf;
 use super::serial::Serial;
 
 const HRAM_SIZE: usize = 127;        // High RAM.
-const WRAM_SIZE:  usize = 32_768;    // 32KB Work RAM.
+const WRAM_SIZE:  usize = 8_192;    // 8KB Work RAM.
 
 pub struct Memory {
     cartridge:  Box<dyn cartridge::Cartridge>,
-    gpu:        GPU,
+    pub gpu:    GPU,
     wram:       [u8; WRAM_SIZE],
     hram:       [u8; HRAM_SIZE],
     timer:      Timer,
@@ -29,7 +30,7 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn new(path: &Path, serial_print: bool) -> Self {
+    pub fn new(path: &Path, callback: SerialCallback) -> Self {
         let intf = Rc::new(RefCell::new(Intf::new()));
         let mut memory = Self {
             cartridge:  cartridge::open_cartridge(path),
@@ -38,7 +39,7 @@ impl Memory {
             hram:       [0; HRAM_SIZE],
             timer:      Timer::new(intf.clone()),
             keypad:     KeyPad::new(intf.clone()),
-            serial:     Serial::new(intf.clone(), serial_print),
+            serial:     Serial::new(intf.clone(), callback),
             inte:       0,
             intf:       intf.clone(),
         };
@@ -63,7 +64,7 @@ impl MemoryBus for Memory {
 
             // C000-CFFF   4KB Work RAM Bank 0 (WRAM)
             // D000-DFFF   4KB Work RAM Bank 1 (WRAM)  (switchable bank 1-7 in CGB Mode)
-            0xC000 ..= 0xCFFF => self.wram[address as usize - 0xC000],
+            0xC000 ..= 0xDFFF => self.wram[address as usize - 0xC000],
             // E000-FDFF   Same as C000-DDFF (ECHO)    (typically not used)
             0xE000 ..= 0xEFFF => self.wram[address as usize - 0xE000],
 
@@ -91,7 +92,7 @@ impl MemoryBus for Memory {
             0x0000 ..= 0x7FFF => self.cartridge.write_byte(address, b),
             0x8000 ..= 0x9FFF => self.gpu.write_byte(address, b),
             0xA000 ..= 0xBFFF => self.cartridge.write_byte(address, b),
-            0xC000 ..= 0xCFFF => self.wram[address as usize - 0xC000] = b,
+            0xC000 ..= 0xDFFF => self.wram[address as usize - 0xC000] = b,
             0xE000 ..= 0xEFFF => self.wram[address as usize - 0xE000] = b,
             0xFE00 ..= 0xFE9F => self.gpu.write_byte(address, b),
             0xFF00 => self.keypad.write_byte(address, b),
@@ -101,13 +102,18 @@ impl MemoryBus for Memory {
             0xFF40 ..= 0xFF4B => self.gpu.write_byte(address, b),
             0xFF80 ..= 0xFFFE => self.hram[address as usize - 0xFF80] = b,
             0xFFFF => self.inte = b,
-            // Interrupt flag.
             _ => {},
         }
     }
 }
 
 impl Memory {
+
+    pub fn update(&mut self, cycles: u32) {
+        self.timer.update(cycles);
+        self.gpu.update(cycles);
+    } 
+
     // Set inital values, rest should be randomised but we can also set to 0.
     fn initialise(&mut self) {
         // http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html

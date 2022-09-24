@@ -1,3 +1,4 @@
+
 pub trait MemoryBus {
 
     fn read_byte(&self, address: u16) -> u8;

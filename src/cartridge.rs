@@ -3,6 +3,7 @@ use std::path::Path;
 use std::fs::File;
 
 use super::bus::MemoryBus;
+use super::mbc::mbc1::MBC1;
 
 // Nintendo logo bitmap, cartridge address range $0104-$0133 must match.
 // https://gbdev.io/pandocs/The_Cartridge_Header.html#0104-0133---nintendo-logo
@@ -11,7 +12,6 @@ const NINTENDO_LOGO: [u8; 48] = [
     0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E,
     0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
 ];
-
 
 pub trait Cartridge: MemoryBus {
     
@@ -54,8 +54,11 @@ pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
     let cartridge: Box<dyn Cartridge> = match buf[0x0147] {
         // ROM only
         0x00 => Box::new(ROM::new(buf)),
-        // TODO: others
-
+        // MBC 1
+        0x01 ..= 0x03 => {
+            let ram_size = ram_size(buf[0x0149]);
+            Box::new(MBC1::new(buf, vec![0; ram_size]))
+        },
         e => panic!("unsupported cartridge type, {}", e)
     };
     
@@ -67,15 +70,15 @@ pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
 
 // byte 0x0149 indicates size of RAM, if any.
 // https://gbdev.io/pandocs/The_Cartridge_Header.html#0149---ram-size
-fn _ram_size(n: u8) -> usize {
+fn ram_size(n: u8) -> usize {
     let kb = 1024;
     match n {
         0x0..=0x01 => 0,
-        0x02 => 8 * kb,
-        0x03 => 32 * kb,
+        0x02 => 8   * kb,
+        0x03 => 32  * kb,
         0x04 => 128 * kb,
-        0x05 => 64 * kb,
-        e => panic!("unsupported RAM size, {:#02x}", e) 
+        0x05 => 64  * kb,
+        _ => 0,
     }
 }
 
@@ -97,6 +100,7 @@ impl MemoryBus for ROM {
 }
 
 impl Cartridge for ROM {}
+impl Cartridge for MBC1 {}
 
 
 #[cfg(test)]
@@ -107,7 +111,6 @@ mod test {
 
     // ROMs with different cartridge architecture.
     // https://b13rg.github.io/Gameboy-MBC-Analysis/#no-mbc
-
     // Checks logo + checksum verification.
     #[test]
     fn rom_only() {
@@ -120,4 +123,12 @@ mod test {
         open_cartridge(dr_mario);
     }
 
+    #[test]
+    fn mbc1() {
+        let test_path = Path::new("./test_roms/cpu_instrs/individual/01-special.gb");
+        assert!(test_path.exists());
+        let cart = open_cartridge(test_path);
+
+        assert_eq!(cart.read_byte(0x4000), 0xC3);
+    }
 }
