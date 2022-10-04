@@ -86,7 +86,7 @@ fn ram_size(n: u8) -> usize {
 pub struct ROM(Vec<u8>);
 
 impl ROM {
-    fn new(data: Vec<u8>) -> Self {
+    pub fn new(data: Vec<u8>) -> Self {
         ROM(data)
     }
 }

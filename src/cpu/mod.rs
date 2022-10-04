@@ -1,4 +1,6 @@
 use std::path::Path;
+
+use super::cartridge::Cartridge;
 use super::bus::MemoryBus;
 use super::memory::Memory;
 use super::serial::SerialCallback;
@@ -9,7 +11,7 @@ use registers::Registers;
 mod opcodes;
 
 pub struct CPU {
-    regs:   Registers,
+    regs:       Registers,
     pub mem:    Memory,
     
     /* Halt is an instruction that pauses the CPU (during which less power is consumed) when executed. 
@@ -27,10 +29,10 @@ pub struct CPU {
 
 impl CPU {
     
-    pub fn new(path: &Path, callback: SerialCallback) -> Self {
+    pub fn new(cartridge: Box<dyn Cartridge>, callback: SerialCallback) -> Self {
         Self {
             regs:                 Registers::new(),
-            mem:                  Memory::new(path, callback),
+            mem:                  Memory::new(cartridge, callback),
             halted:               false,
             ime:                  true,
             disable_interrupt:    0,

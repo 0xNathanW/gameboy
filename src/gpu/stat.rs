@@ -1,3 +1,5 @@
+use std::default;
+
 use crate::bus::MemoryBus;
 use crate::bit::Bit;
 
@@ -13,8 +15,9 @@ use crate::bit::Bit;
     > 0 - HBlank, > 1 - VBlank, > 2 - Searching OAM, > 3 Transfer data to LCD
 */
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Default)]
 pub enum Mode {
+    #[default]
     HBlank,
     VBlank,
     OAMRead,
@@ -22,40 +25,78 @@ pub enum Mode {
 }
 
 #[derive(Default)]
-pub struct STAT (u8);
+pub struct STAT {
+    pub lyc_interrupt:      bool,
+    pub oam_interrupt:      bool,
+    pub vblank_interrupt:   bool,
+    pub hblank_interrupt:   bool,
+    pub mode:               Mode,
+}
 
-impl STAT { 
-    pub fn new() -> Self { Default::default() } 
+impl STAT { pub fn new() -> Self { Default::default() } }
 
-    pub fn lyc_interrupt(&self)     -> bool { self.0.bit(6) }
-    pub fn oam_interrupt(&self)     -> bool { self.0.bit(5) }
-    pub fn vblank_interrupt(&self)  -> bool { self.0.bit(4) }
-    pub fn hblank_interrupt(&self)  -> bool { self.0.bit(3) }
-
-    pub fn mode(&self) -> Mode { 
-        match self.0 & 0b11 {
-            0 => Mode::HBlank,
-            1 => Mode::VBlank,
-            2 => Mode::OAMRead,
-            3 => Mode::VRAMRead,
-            
-            _ => Mode::HBlank,
+impl MemoryBus for STAT {
+    fn read_byte(&self, address: u16) -> u8 {
+        assert_eq!(address, 0xFF41);
+        let mut b: u8 = 0;
+        if self.lyc_interrupt       { b.set(6) }
+        if self.oam_interrupt       { b.set(5) }
+        if self.vblank_interrupt    { b.set(4) }
+        if self.hblank_interrupt    { b.set(3) }
+        match self.mode {
+            Mode::HBlank    => {},
+            Mode::VBlank    => { b.set(0) },
+            Mode::OAMRead   => { b.set(1) },
+            Mode::VRAMRead  => { b.set(1); b.set(0) },
         }
+        b
     }
 
-    pub fn set_mode(&mut self, mode: Mode) {
-        self.0 |= match mode {
-            Mode::HBlank    => 0,
-            Mode::VBlank    => 1,
-            Mode::OAMRead   => 2,
-            Mode::VRAMRead  => 3, 
-        }
+    // mode flag and ly_compare=ly flag read only
+    fn write_byte(&mut self, address: u16, b: u8) { 
+        assert_eq!(address, 0xFF41);
+        self.lyc_interrupt      = b.bit(6);
+        self.oam_interrupt      = b.bit(5);
+        self.vblank_interrupt   = b.bit(4);
+        self.hblank_interrupt   = b.bit(3);
     }
 }
 
-impl MemoryBus for STAT {
-    fn read_byte(&self, _: u16) -> u8 { self.0 }
+#[cfg(test)]
+mod test {
+    use crate::bus::MemoryBus;
 
-    // mode flag and ly_compare=ly flag read only
-    fn write_byte(&mut self, _: u16, b: u8) { self.0 = b & 0b01111000 }
+    use super::STAT;
+    use super::Mode;
+
+    #[test]
+    fn stat_new() {
+        let stat = STAT::new();
+        assert!(!stat.lyc_interrupt);
+        assert!(!stat.oam_interrupt);
+        assert!(!stat.vblank_interrupt);
+        assert!(!stat.hblank_interrupt);
+        assert_eq!(stat.mode, Mode::HBlank);
+    }
+
+    #[test]
+    fn stat_mode() {
+        let mut stat = STAT::new();
+        stat.mode = Mode::VBlank;
+        assert_eq!(stat.mode, Mode::VBlank);
+        stat.mode = Mode::HBlank;
+        assert_eq!(stat.mode, Mode::HBlank);
+    }
+
+    #[test]
+    fn read_write() {
+        let mut stat = STAT::new();
+        stat.write_byte(0xFF41, 0b1111_1111);
+        assert_eq!(stat.mode, Mode::HBlank);
+        assert!(stat.oam_interrupt);
+        assert!(stat.vblank_interrupt);
+        assert!(stat.lyc_interrupt);
+        stat.mode = Mode::OAMRead;
+        assert_eq!(stat.read_byte(0xFF41), 0b0111_1010);
+    }
 }

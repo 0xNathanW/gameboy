@@ -291,14 +291,16 @@ impl CPU {
            
             // LD A, (HLD) - put value at address hl into A, decrement hl.
             0x3A => {
-                self.regs.a = self.mem.read_byte(self.regs.get_hl());
-                self.regs.set_hl(self.regs.get_hl() - 1);
+                let hl = self.regs.get_hl();
+                self.regs.a = self.mem.read_byte(hl);
+                self.regs.set_hl(hl - 1);
                 8
             },
             // LD (HLD), A - put A into memory at address hl, decrement hl.
             0x32 => {
-                self.mem.write_byte(self.regs.get_hl(), self.regs.a);
-                self.regs.set_hl(self.regs.get_hl() - 1);
+                let hl = self.regs.get_hl();
+                self.mem.write_byte(hl, self.regs.a);
+                self.regs.set_hl(hl - 1);
                 8
             },
             // LD A, (HLI) - put value at address hl into A, increment hl.
@@ -310,8 +312,9 @@ impl CPU {
             },
             // LD (HLI), A - put A into memory address hl, increment hl.
             0x22 => {
-                self.mem.write_byte(self.regs.get_hl(), self.regs.a);
-                self.regs.set_hl(self.regs.get_hl() + 1);
+                let hl = self.regs.get_hl();
+                self.mem.write_byte(hl, self.regs.a);
+                self.regs.set_hl(hl + 1);
                 8
             },
 

@@ -14,7 +14,8 @@ use super::bus::MemoryBus;
 // Bit 1 - P11 Input Left  or Button B (0=Pressed) (Read Only)
 // Bit 0 - P10 Input Right or Button A (0=Pressed) (Read Only)
 
-pub enum Key {
+#[derive(Clone)]
+pub enum GbKey {
     Right,
     Left, 
     Up,  
@@ -45,32 +46,32 @@ impl KeyPad {
         }
     }
 
-    pub fn key_press(&mut self, key: Key) {
+    pub fn key_press(&mut self, key: GbKey) {
         match key {
-            Key::Right  => self.reg[1] &= 0b1110,
-            Key::Left   => self.reg[1] &= 0b1101,
-            Key::Up     => self.reg[1] &= 0b1011,
-            Key::Down   => self.reg[1] &= 0b0111,
+            GbKey::Right  => self.reg[1] &= 0b1110,
+            GbKey::Left   => self.reg[1] &= 0b1101,
+            GbKey::Up     => self.reg[1] &= 0b1011,
+            GbKey::Down   => self.reg[1] &= 0b0111,
 
-            Key::A      => self.reg[0] &= 0b1110,
-            Key::B      => self.reg[0] &= 0b1101,
-            Key::Select => self.reg[0] &= 0b1011,
-            Key::Start  => self.reg[0] &= 0b0111,
+            GbKey::A      => self.reg[0] &= 0b1110,
+            GbKey::B      => self.reg[0] &= 0b1101,
+            GbKey::Select => self.reg[0] &= 0b1011,
+            GbKey::Start  => self.reg[0] &= 0b0111,
         }
         self.intf.borrow_mut().set_interrupt(InterruptSource::Keypad);
     }
 
-    pub fn key_release(&mut self, key: Key) {
+    pub fn key_release(&mut self, key: GbKey) {
         match key {
-            Key::Right  => self.reg[1] |= !(0b1110),
-            Key::Left   => self.reg[1] |= !(0b1101),
-            Key::Up     => self.reg[1] |= !(0b1011),
-            Key::Down   => self.reg[1] |= !(0b0111),
+            GbKey::Right  => self.reg[1] |= !(0b1110),
+            GbKey::Left   => self.reg[1] |= !(0b1101),
+            GbKey::Up     => self.reg[1] |= !(0b1011),
+            GbKey::Down   => self.reg[1] |= !(0b0111),
             
-            Key::A      => self.reg[0] |= !(0b1110),
-            Key::B      => self.reg[0] |= !(0b1101),
-            Key::Select => self.reg[0] |= !(0b1011),
-            Key::Start  => self.reg[0] |= !(0b0111),
+            GbKey::A      => self.reg[0] |= !(0b1110),
+            GbKey::B      => self.reg[0] |= !(0b1101),
+            GbKey::Select => self.reg[0] |= !(0b1011),
+            GbKey::Start  => self.reg[0] |= !(0b0111),
         };
     }
 }

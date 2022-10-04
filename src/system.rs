@@ -1,49 +1,72 @@
 use std::path::Path;
-use::minifb::Window;
+use std::time;
+use std::thread;
+use::minifb::{Window, Key};
 
-use crate::{SCREEN_WIDTH as W, SCREEN_HEIGHT as H};
+use crate::{SCREEN_WIDTH, SCREEN_HEIGHT};
+use super::cartridge;
 use super::serial::SerialCallback;
 use super::cpu::CPU;
+use super::keypad::GbKey;
+
+const FRAME_TIME: time::Duration = time::Duration::from_millis(16);
 
 pub struct Gameboy {
-    cpu: CPU,
-    display: Window,
+    pub cpu: CPU,
+    pub display: Window,
 }
 
 impl Gameboy {
 
-    pub fn new(rom_path: &Path, display: Window, callback: SerialCallback) -> Self { 
+    pub fn new(rom_path: &Path, display: Window, callback: SerialCallback) -> Self {
+        let cartridge = cartridge::open_cartridge(rom_path);
         Self{
-            cpu: CPU::new(rom_path, callback),
+            cpu: CPU::new(cartridge, callback),
             display,
-        } 
+        }
     }
 
     pub fn run(&mut self) {
 
-        let mut buf = vec![0; W * H];
-        self.display.update_with_buffer(&buf, W, H).unwrap();
- 
-        loop {
+        while self.display.is_open() {
+            let now = time::Instant::now();
 
-            let cycles = self.cpu.step();
-            self.cpu.mem.update(cycles);
+            let mut frame_cycles = 0;
+            while frame_cycles <= 69_905 {
+                let cycles = self.cpu.step();
+                self.cpu.mem.update(cycles);
+                frame_cycles += cycles;
+            }
 
-            let mut idx = 0;
-            for row in self.cpu.mem.gpu.pixels.iter() {
-                for pix in row.iter() {
-                    
-                    let (b, g, r) = (
-                        (pix[0] as u32) << 16,
-                        (pix[1] as u32) << 8,
-                        (pix[2] as u32),
-                    );
-                    let a = 0xFF00_0000;
-                    buf[idx] = a | b | g | r;
-                    idx += 1;
+            let keys = [
+                (Key::Right,  GbKey::Right),
+                (Key::Up,     GbKey::Up),
+                (Key::Left,   GbKey::Left),
+                (Key::Down,   GbKey::Down),
+                (Key::J,      GbKey::A),
+                (Key::K,      GbKey::B),
+                (Key::Space,  GbKey::Select),
+                (Key::Enter,  GbKey::Start),
+            ];
+            
+            for (input, key) in keys.iter() {
+                if self.display.is_key_down(*input) {
+                    self.cpu.mem.keypad.key_press(key.clone());
+                } else {
+                    self.cpu.mem.keypad.key_release(key.clone());
                 }
             }
-            //self.display.update_with_buffer(&buf, W, H).unwrap();
+            
+            self.display.update_with_buffer(
+                self.cpu.mem.gpu.pixels.as_ref(),
+                SCREEN_WIDTH,
+                SCREEN_HEIGHT,
+            ).unwrap();
+            
+            match FRAME_TIME.checked_sub(now.elapsed()) {
+                Some(time) => { thread::sleep(time); },
+                None => {},
+            }
         }
     }
 }

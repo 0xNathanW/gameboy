@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 
+use crate::SCREEN_WIDTH;
+use super::cartridge::Cartridge;
 use super::serial::SerialCallback;
 use super::cartridge;
 use super::bus::MemoryBus;
@@ -15,25 +17,25 @@ const HRAM_SIZE: usize = 127;        // High RAM.
 const WRAM_SIZE:  usize = 8_192;    // 8KB Work RAM.
 
 pub struct Memory {
-    cartridge:  Box<dyn cartridge::Cartridge>,
-    pub gpu:    GPU,
-    wram:       [u8; WRAM_SIZE],
-    hram:       [u8; HRAM_SIZE],
-    timer:      Timer,
-    keypad:     KeyPad,
-    serial:     Serial,
+    cartridge:      Box<dyn cartridge::Cartridge>,
+    pub gpu:        GPU,
+    wram:           [u8; WRAM_SIZE],
+    hram:           [u8; HRAM_SIZE],
+    timer:          Timer,
+    pub keypad:     KeyPad,
+    serial:         Serial,
     // inte is written to buy game.
-    inte:       u8,
+    inte:           u8,
     // intf can be written to by components to request interrupts.
     // needs to be shared and have interior mutability.
-    intf:       Rc<RefCell<Intf>>,
+    intf:           Rc<RefCell<Intf>>,
 }
 
 impl Memory {
-    pub fn new(path: &Path, callback: SerialCallback) -> Self {
+    pub fn new(cartridge: Box<dyn Cartridge>, callback: SerialCallback) -> Self {
         let intf = Rc::new(RefCell::new(Intf::new()));
         let mut memory = Self {
-            cartridge:  cartridge::open_cartridge(path),
+            cartridge,
             gpu:        GPU::new(intf.clone()),
             wram:       [0; WRAM_SIZE],
             hram:       [0; HRAM_SIZE],
@@ -99,7 +101,9 @@ impl MemoryBus for Memory {
             0xFF01 ..= 0xFF02 => self.serial.write_byte(address, b),
             0xFF04 ..= 0xFF07 => self.timer.write_byte(address, b),
             0xFF0F => self.intf.borrow_mut().write_byte(address, b),
-            0xFF40 ..= 0xFF4B => self.gpu.write_byte(address, b),
+            0xFF40 ..= 0xFF45 => self.gpu.write_byte(address, b),
+            0xFF46 => self.dma_transfer(b),
+            0xFF47 ..= 0xFF4B => self.gpu.write_byte(address, b),
             0xFF80 ..= 0xFFFE => self.hram[address as usize - 0xFF80] = b,
             0xFFFF => self.inte = b,
             _ => {},
@@ -148,5 +152,13 @@ impl Memory {
         self.write_byte(0xFF4A, 0x00);
         self.write_byte(0xFF4B, 0x00);
         self.write_byte(0xFFFF, 0x00);
+    }
+
+    // Direct memory transfer (DMA) from ROM/RAm to OAM.
+    fn dma_transfer(&mut self, src_address: u8) {
+        let base_address: u16 = (src_address as u16) << 8;
+        for x in 0..SCREEN_WIDTH as u16 {
+            self.gpu.write_byte(0xFE00 + x, self.read_byte(base_address + x));
+        }
     }
 }
