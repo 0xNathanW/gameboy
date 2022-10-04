@@ -344,11 +344,8 @@ impl GPU {
         }
     }
 
-    fn set_pixel(&mut self, x: usize, shade: u8) {
-        let p: u32 = 0xFF_00_00_00 |
-            (shade as u32) << 16   |
-            (shade as u32) << 8    |
-            (shade as u32);
+    fn set_pixel(&mut self, x: usize, colour: u32) {
+        let p: u32 = 0xFF_00_00_00 | colour;
         self.pixels[(self.ly as usize) * SCREEN_WIDTH + x] = p;
     }
 }

@@ -1,28 +1,28 @@
 use crate::bus::MemoryBus;
 
-/*  Shades
+/*  Shades - B/W (u8)
     White   = 255,
     Light   = 192,
     Dark    = 96,
-    Black   = 0,
+    Black   = 0    
 */
 
 #[derive(Default)]
 pub struct Palette {
     data: u8,
-    colours: [u8; 4],
+    colours: [u32; 4],
 }
 
 impl Palette {
     
     pub fn new() -> Self { Self::default() }
 
-    pub fn get_shade(&self, idx: usize) -> u8 {
+    pub fn get_shade(&self, idx: usize) -> u32 {
         match (self.data >> 2 * idx) & 0b11 {
-            0b00 => 255,
-            0b01 => 192,
-            0b10 => 96, 
-            0b11 => 0,
+            0b00 => 0xE9EFEC,     // Lightest
+            0b01 => 0xA0A08B,
+            0b10 => 0x555568, 
+            0b11 => 0x211E20,      // Darkest
             _    => panic!("invalid colour"),
          }
     }
