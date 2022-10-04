@@ -19,9 +19,9 @@ pub struct MBC1 {
     // Enables the reading and writing of external RAM.
     ram_enable: bool,
     ram: Vec<u8>,
-    /* This second 2-bit register can be used to select a RAM Bank in range from $00-$03 
-    (32 KiB ram carts only), or to specify the upper two bits (bits 5-6) of the ROM 
-    Bank number (1 MiB ROM or larger carts only). */
+    // This second 2-bit register can be used to select a RAM Bank in range from $00-$03 
+    // (32 KiB ram carts only), or to specify the upper two bits (bits 5-6) of the ROM 
+    // Bank number (1 MiB ROM or larger carts only).
     ram_bank: u8,
 
     // This 1-bit register selects between the two MBC1 banking modes, 

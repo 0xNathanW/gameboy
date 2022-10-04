@@ -75,26 +75,3 @@ fn minifb_test() {
         window.update_with_buffer(&buf, 160, 144).unwrap();
     }
 }
-
-#[test]
-fn cpu_instrs_system() {
-    use std::path::Path;
-    use minifb::{Window, WindowOptions, Scale};
-    use crate::system::Gameboy;
-
-    let test_path = Path::new("./test_roms/cpu_instrs/cpu_instrs.gb");
-    assert!(test_path.exists());
-
-    let window = Window::new(
-        "test", 
-        160, 
-        144, 
-        WindowOptions {
-            scale: Scale::X8,
-            ..Default::default()
-        }
-    ).unwrap();
-
-    let mut gb = Gameboy::new(test_path, window, None);
-    gb.run();
-}

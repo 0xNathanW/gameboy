@@ -5,7 +5,7 @@ use std::fmt::Debug;
 // to form a 16-bit register pair.
 #[derive(Default)]
 pub struct Registers {
-    pub a:  u8,      // Accumulator.
+    pub a:  u8,      
     f:      u8,      // Flags.
     pub b:  u8,
     pub c:  u8,
@@ -18,12 +18,7 @@ pub struct Registers {
     pub pc: u16,    // Program counter.
 }
 
-pub enum Flag {
-    Z,
-    N,
-    H,
-    C,
-}
+pub enum Flag { Z, N, H, C }
 
 // Flags implemented in bitmask.
 const ZERO_FLAG: u8         = 0b1000_0000;  

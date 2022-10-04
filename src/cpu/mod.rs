@@ -23,8 +23,8 @@ pub struct CPU {
     // Not accessble via i/o address, only through instructions.
     ime:         bool,
 
-    disable_interrupt: u32,
-    enable_interrupt:  u32,    
+    disable_interrupt: u8,
+    enable_interrupt:  u8,    
 }
 
 impl CPU {
@@ -72,10 +72,13 @@ impl CPU {
         self.update_ime();
 
         let interrupt_cycles = self.check_interrupts();
-        if interrupt_cycles != 0 { return interrupt_cycles }
-        
-        if self.halted { 4 }
-        else {
+        if interrupt_cycles != 0 { 
+            return interrupt_cycles 
+        }
+        // If halted simulate nop instruction.
+        if self.halted { 
+            4 
+        } else {
             let opcode = self.next_byte();
             self.execute(opcode) 
         }
@@ -122,6 +125,7 @@ impl CPU {
         self.regs.pc = 0x0040 | ((n as u16) << 3);
     }
 
+    // Enabling and disabling of interrupts is delayed by one instruction.
     fn update_ime(&mut self) {
         self.disable_interrupt = match self.disable_interrupt {
             2 => 1,

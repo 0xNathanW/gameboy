@@ -36,7 +36,14 @@ pub trait Cartridge: MemoryBus {
         }
     }
 
-    fn title(&self) {} //TODO
+    // Retrieve title of game in upper-case ASCI.
+    fn title(&self) -> String {
+        let mut title = String::new();
+        for address in 0x134..= 0x143 {
+            title.push(self.read_byte(address) as char);            
+        }
+        title
+    }
  
 }
 
@@ -59,7 +66,7 @@ pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
             let ram_size = ram_size(buf[0x0149]);
             Box::new(MBC1::new(buf, vec![0; ram_size]))
         },
-        e => panic!("unsupported cartridge type, {}", e)
+        e => panic!("unsupported cartridge type, {:#X}", e)
     };
     
     // If verification of logo or checksum fails, program should panic.
