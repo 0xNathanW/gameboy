@@ -3,6 +3,7 @@ use std::rc::Rc;
 
 use super::bit::Bit;
 use super::bus::MemoryBus;
+use super::clock::Clock;
 use super::intf::{Intf, InterruptSource};
 
 #[derive(Default)]
@@ -31,9 +32,8 @@ pub struct Timer {
     */
     enable: bool,
 
-    period:             u32,
-    internal_divider:   u32,
-    internal_counter:   u32,
+    div_clock: Clock,
+    mod_clock: Clock,
 
     intf:   Rc<RefCell<Intf>>
 }
@@ -48,12 +48,12 @@ impl MemoryBus for Timer {
             0xFF07 => {
                 let mut b: u8 = 0;
                 if self.enable { b.set(2) };
-                match self.period {
+                match self.mod_clock.period {
                     1024 => b.set(0),
                     16   => b.set(1),
                     64   => b.set(2),
                     256  => b.set(3),
-                    _ => panic!("timer period not supported (read) {:4X}", self.period)
+                    _ => panic!("timer period not supported (read) {:4X}", self.mod_clock.period),
                 }
                 b
             },
@@ -68,12 +68,12 @@ impl MemoryBus for Timer {
             0xFF06 => { self.modulo = b },
             0xFF07 => {
                 self.enable = b.bit(2);
-                self.period = match b & 0b11 {
+                self.mod_clock.period = match b & 0b11 {
                     0 => 1024,
-                    1 => 16, 
+                    1 => 16,
                     2 => 64,
                     3 => 256,
-                    _ => panic!("timer period not supported (write): {:4X}", self.period) 
+                    _ => panic!("timer period not supported (write): {:4X}", b & 0b11), 
                 }
             }
             _ => panic!("address for timer not supported: {:?}", addr)
@@ -85,40 +85,26 @@ impl Timer {
     
     pub fn new(intf: Rc<RefCell<Intf>>) -> Self {
         Self {
-            period: 256,
-            intf, 
+            div_clock: Clock::new(256),
+            mod_clock: Clock::new(1024),
+            intf,
             ..Timer::default()
         }
     }
 
     pub fn update(&mut self, cycles: u32) {
-        self.increment_div(cycles);
+        self.divider = self.divider.wrapping_add(self.div_clock.tick(cycles) as u8);
         
         if self.enable {
-            self.internal_counter += cycles ;
-
-            // TIMA updates at freq set by self.period.
-            while self.internal_counter > self.period {
+            for _ in 0..self.mod_clock.tick(cycles) {
                 self.counter = self.counter.wrapping_add(1);
-            
-                // Timer about to overflow, TIMA set to TMA + interrupt.
+
                 if self.counter == 0 {
                     self.counter = self.modulo;
                     self.intf.borrow_mut().set_interrupt(InterruptSource::Timer);
-                }                
+                }
 
-                self.internal_counter  -= self.period;
             }
-        }
-    }
-
-    // The divider register increments at a fixed rate of 16,384 Hz. 
-    // This means that we have to increment DIV’s value every 256 clock cycles (4,194,304 / 16,384 = 256).
-    fn increment_div(&mut self, cycles: u32) {
-        self.internal_divider += cycles;
-        while self.internal_divider >= 256 {
-            self.divider = self.divider.wrapping_add(1);
-            self.internal_divider -= 256;
         }
     }
 }

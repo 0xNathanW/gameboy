@@ -13,16 +13,13 @@ mod opcodes;
 pub struct CPU {
     regs:       Registers,
     pub mem:    Memory,
-    
-    /* Halt is an instruction that pauses the CPU (during which less power is consumed) when executed. 
-    The CPU wakes up as soon as an interrupt is pending, that is, when the bitwise AND of IE and IF 
-    is non-zero. */
+    // Halt is an instruction that pauses the CPU (during which less power is consumed) when executed. 
+    // The CPU wakes up as soon as an interrupt is pending, that is, when the bitwise AND of IE and IF 
+    // is non-zero.
     halted:     bool,
-    
     // Flag for enabling interrupts in the IE register.
     // Not accessble via i/o address, only through instructions.
     ime:         bool,
-
     disable_interrupt: u8,
     enable_interrupt:  u8,    
 }
