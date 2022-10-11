@@ -1032,7 +1032,7 @@ impl CPU {
                     },
                 }
             }
-            e => panic!("unsuppored opcode: {:#2X}", e)
+            unknown => panic!("unsuppored opcode: {:#2X}", unknown),
         };
         cycles
     }

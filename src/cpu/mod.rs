@@ -10,9 +10,8 @@ mod opcodes;
 
 use registers::Registers;
 
-const CLOCK_FREQUENCY: u32 = 4_194_304;
 const STEP_TIME: u32 = 16;
-const STEP_CYCLES: u32 = (STEP_TIME as f64 / (1_000_f64 / CLOCK_FREQUENCY as f64) ) as u32;
+const STEP_CYCLES: u32 = (STEP_TIME as f64 / (1_000_f64 / 4_194_304_f64 as f64) ) as u32;
 
 pub struct CPU {
     regs:               Registers,
@@ -24,9 +23,11 @@ pub struct CPU {
     // Flag for enabling interrupts in the IE register.
     // Not accessble via i/o address, only through instructions.
     ime:                bool,
+
     disable_interrupt:  u8,
     enable_interrupt:   u8,
 
+    // Provide control over speed of cpu clock.
     step_cycles:        u32,
     step_zero:          time::Instant,
     step_flip:          bool,
@@ -76,7 +77,7 @@ impl CPU {
 
 impl CPU {
 
-    pub fn tick(&mut self) -> u32 {
+    fn tick(&mut self) -> u32 {
         self.update_ime();
 
         let interrupt_cycles = self.check_interrupts();
@@ -93,12 +94,12 @@ impl CPU {
     }
 
     pub fn step(&mut self) -> u32 {
+        
         if self.step_cycles > STEP_CYCLES {
             self.step_cycles -= STEP_CYCLES;
             let now = time::Instant::now();
             let d = now.duration_since(self.step_zero);
             let sleep_time = (STEP_TIME.saturating_sub(d.as_millis() as u32)) as u64;
-//            println!("{}", sleep_time);
             thread::sleep(time::Duration::from_millis(sleep_time));
             self.step_zero = self.step_zero.checked_add(time::Duration::from_millis(STEP_TIME as u64)).unwrap();
 

@@ -10,6 +10,7 @@ use gameboy::keypad::GbKey;
 use gameboy::cartridge;
 use gameboy::apu::APU;
 
+
 #[derive(Parser)]
 #[command(author = "Nathanw", about  = "A Rust powered Gameboy emulator.")]
 struct Args {
@@ -74,13 +75,19 @@ fn main() {
         SCREEN_HEIGHT,
         opts,
     ).unwrap_or_else(|e| { panic!("error setting up display: {}", e) });
+    
+    let callback: Option<Box<dyn Fn(u8)>> = if args.serial {
+        Some(Box::new(|b: u8| { print!("{}", b as char); }))
+    } else {
+        None
+    };
 
-    let mut cpu = CPU::new(cartridge, None);
+    let mut cpu = CPU::new(cartridge, callback);
 
-    let audio_stream: Option<cpal::Stream> = if args.audio {
+    let audio_stream = if args.audio {
         initialise_audio(&mut cpu)
     } else { 
-        None 
+        None
     };
 
     let keys = [

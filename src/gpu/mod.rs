@@ -217,16 +217,6 @@ impl GPU {
             } as u16;
 
             let tile_data_address = tile_base_address + tile_offset;
-            //
-            if tile_data_address == 0xFF46 {
-                println!("
-                    tile: address:      {:#X},
-                    tile_base_address:  {:#X},
-                    tile_offset:        {:#X},
-                    tile_data_address:  {:#X},
-                ", tile_address, tile_base_address, tile_offset, tile_data_address);
-            }
-            //
             let tile_data = [
                 self.read_byte(tile_data_address),
                 self.read_byte(tile_data_address + 1),

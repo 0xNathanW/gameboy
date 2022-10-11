@@ -8,6 +8,11 @@ use std::sync::{Arc, Mutex};
 
 const CLOCK_FREQUENCY: u32 = 4_194_304;
 
+/*
+    Shamelessly taken from https://github.com/mohanson/gameboy.
+    I am clueless with audio.
+*/
+ 
 #[derive(Clone, Eq, PartialEq)]
 enum Channel {
     Square1,

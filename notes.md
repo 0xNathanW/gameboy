@@ -7,3 +7,6 @@ cpu cycles per second - 4_194_304
 frames per second - 60
 
 cpu cycles per frame - 69_905
+
+## TODO 
+- add macro/function for failing read/write from memory bus.
