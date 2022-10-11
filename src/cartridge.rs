@@ -20,7 +20,7 @@ pub trait Cartridge: MemoryBus {
     fn verify_logo(&self) {
         for i in 0..48 {
             if self.read_byte(0x0104+i) != NINTENDO_LOGO[i as usize] {
-                panic!("logo bytes do not match")
+                panic!("nintendo logo in cartridge is not correct.");
             }
         }
     }
@@ -32,7 +32,7 @@ pub trait Cartridge: MemoryBus {
             checksum = checksum.wrapping_sub(self.read_byte(i)).wrapping_sub(1);
         }
         if checksum != self.read_byte(0x014D) {
-            panic!("header checksum incorrect")
+            panic!("header checksum incorrect");
         }
     }
 
@@ -40,11 +40,10 @@ pub trait Cartridge: MemoryBus {
     fn title(&self) -> String {
         let mut title = String::new();
         for address in 0x134..= 0x143 {
-            title.push(self.read_byte(address) as char);            
+            title.push(self.read_byte(address) as char);
         }
         title
     }
- 
 }
 
 
@@ -56,12 +55,11 @@ pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
     if buf.len() < 0x0150 {
         panic!("missing info in cartridge header")
     }
-
     // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
     let cartridge: Box<dyn Cartridge> = match buf[0x0147] {
-        // ROM only
+        // ROM only.
         0x00 => Box::new(ROM::new(buf)),
-        // MBC 1
+        // MBC 1.
         0x01 ..= 0x03 => {
             let ram_size = ram_size(buf[0x0149]);
             Box::new(MBC1::new(buf, vec![0; ram_size]))
@@ -99,9 +97,7 @@ impl ROM {
 }
 
 impl MemoryBus for ROM {
-    fn read_byte(&self, address: u16) -> u8 {
-        self.0[address as usize]
-    }
+    fn read_byte(&self, address: u16) -> u8 { self.0[address as usize] }
     // ROM is read-only so no write functionality.
     fn write_byte(&mut self, _: u16, _: u8) {}
 }

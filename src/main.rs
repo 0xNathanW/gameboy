@@ -1,6 +1,7 @@
 use cpal::OutputCallbackInfo;
 use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
 use minifb::{Window, WindowOptions, Scale, Key};
+use clap::Parser;
 use std::{path::Path, ffi::OsStr};
 
 use gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -9,16 +10,46 @@ use gameboy::keypad::GbKey;
 use gameboy::cartridge;
 use gameboy::apu::APU;
 
+#[derive(Parser)]
+#[command(author = "Nathanw", about  = "A Rust powered Gameboy emulator.")]
+struct Args {
+    #[arg(short, long, help = "Path to rom")]
+    path:   String,
+
+    #[arg(short = 'x', long, help = "Display scale factor")]
+    #[arg(value_enum, default_value_t)]
+    scale:  DisplayScale,
+
+    #[arg(short, long, help = "Enable audio")]
+    #[arg(default_value = "false")]
+    audio:  bool,
+
+    #[arg(short, long, help = "print serial write to stdout")]
+    #[arg(default_value = "false")]
+    serial: bool,
+}
+
+// Copy of minifb::Scale such that it implements clap::ValueEnum.
+#[derive(clap::ValueEnum, Clone, Default, Debug)]
+enum DisplayScale {
+    X1,
+    X2,
+    #[default]
+    X4,
+    X8,
+    X16,
+    X32,
+}
+
 fn main() {
 
-    let rom_name = std::env::args().nth(1).expect(
-        "a path to a rom must be provided as an argument"
-    );
+    let args = Args::parse();
+    let rom_name = args.path;
 
     let rom_path = Path::new(&rom_name);
     if !rom_path.exists() { 
-        panic!("path does not exist"); 
-    }    
+        panic!("path provided does not exist"); 
+    }
     if rom_path.extension() != Some(OsStr::new("gb")) {
         panic!("file provided does not have the extention '.gb'"); 
     }
@@ -26,7 +57,14 @@ fn main() {
     let cartridge = cartridge::open_cartridge(rom_path);
 
     let opts = WindowOptions {
-        scale: Scale::X4,
+        scale: match args.scale {
+            DisplayScale::X1  => Scale::X1,
+            DisplayScale::X2  => Scale::X2,
+            DisplayScale::X4  => Scale::X4,
+            DisplayScale::X8  => Scale::X8,
+            DisplayScale::X16 => Scale::X16,
+            DisplayScale::X32 => Scale::X32            
+        },
         ..Default::default()
     };
 
@@ -35,11 +73,15 @@ fn main() {
         SCREEN_WIDTH,
         SCREEN_HEIGHT,
         opts,
-    ).unwrap_or_else(|e| { panic!("{}", e) });
+    ).unwrap_or_else(|e| { panic!("error setting up display: {}", e) });
 
     let mut cpu = CPU::new(cartridge, None);
 
-    let audio_player = initialise_audio(&mut cpu);
+    let audio_stream: Option<cpal::Stream> = if args.audio {
+        initialise_audio(&mut cpu)
+    } else { 
+        None 
+    };
 
     let keys = [
         (Key::Right,  GbKey::Right),
@@ -75,10 +117,12 @@ fn main() {
 
         if !cpu.flip() { continue; }
     }
-    drop(audio_player);
+
+    // Drop the audio stream if it exists.
+    if audio_stream.is_some() { drop(audio_stream.unwrap()) }
 }
 
-fn initialise_audio(cpu: &mut CPU) -> cpal::Stream {
+fn initialise_audio(cpu: &mut CPU) -> Option<cpal::Stream> {
 
     let device = cpal::default_host().default_output_device().expect("failed to find output device.");
     let config = device.default_output_config().unwrap();
@@ -102,5 +146,5 @@ fn initialise_audio(cpu: &mut CPU) -> cpal::Stream {
         err_fn,
     ).unwrap();
     stream.play().unwrap();
-    stream
+    Some(stream)
 }
