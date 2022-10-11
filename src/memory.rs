@@ -12,18 +12,24 @@ use super::gpu::GPU;
 use super::keypad::KeyPad;
 use super::intf::Intf;
 use super::serial::Serial;
+use super::apu::APU;
 
 const HRAM_SIZE: usize = 127;        // High RAM.
 const WRAM_SIZE:  usize = 8_192;    // 8KB Work RAM.
 
 pub struct Memory {
-    cartridge:      Box<dyn cartridge::Cartridge>,
-    pub gpu:        GPU,
+    
+    cartridge:      Box<dyn cartridge::Cartridge>,    
     wram:           [u8; WRAM_SIZE],
     hram:           [u8; HRAM_SIZE],
     timer:          Timer,
+    
+    // IO
+    pub gpu:        GPU,
     pub keypad:     KeyPad,
+    pub apu:        Option<APU>,
     serial:         Serial,
+    
     // inte is written to buy game.
     inte:           u8,
     // intf can be written to by components to request interrupts.
@@ -36,6 +42,7 @@ impl Memory {
         let intf = Rc::new(RefCell::new(Intf::new()));
         let mut memory = Self {
             cartridge,
+            apu:        None,
             gpu:        GPU::new(intf.clone()),
             wram:       [0; WRAM_SIZE],
             hram:       [0; HRAM_SIZE],
@@ -78,7 +85,11 @@ impl MemoryBus for Memory {
             0xFF01 ..= 0xFF02 => self.serial.read_byte(address),
             0xFF04 ..= 0xFF07 => self.timer.read_byte(address),           // Timer/Divider
             0xFF0F => self.intf.borrow().read_byte(address),
-            0xFF40 ..= 0xFF4B => self.gpu.read_byte(address),   
+            0xFF10 ..= 0xFF3F => match &self.apu {
+                Some(apu) => apu.read_byte(address),
+                None => 0, 
+            },
+            0xFF40 ..= 0xFF4B => self.gpu.read_byte(address),
 
             // FF80-FFFE   High RAM (HRAM)
             0xFF80 ..= 0xFFFE => self.hram[address as usize - 0xFF80],
@@ -101,6 +112,10 @@ impl MemoryBus for Memory {
             0xFF01 ..= 0xFF02 => self.serial.write_byte(address, b),
             0xFF04 ..= 0xFF07 => self.timer.write_byte(address, b),
             0xFF0F => self.intf.borrow_mut().write_byte(address, b),
+            0xFF10 ..= 0xFF3F => match &mut self.apu {
+                Some(apu) => apu.write_byte(address, b),
+                None => {},
+            },
             0xFF40 ..= 0xFF45 => self.gpu.write_byte(address, b),
             0xFF46 => self.dma_transfer(b),
             0xFF47 ..= 0xFF4B => self.gpu.write_byte(address, b),
@@ -116,6 +131,7 @@ impl Memory {
     pub fn update(&mut self, cycles: u32) {
         self.timer.update(cycles);
         self.gpu.update(cycles);
+        self.apu.as_mut().map_or((), |apu| apu.next(cycles));
     } 
 
     // Set inital values, rest should be randomised but we can also set to 0.

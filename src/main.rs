@@ -1,12 +1,13 @@
+use cpal::OutputCallbackInfo;
+use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
 use minifb::{Window, WindowOptions, Scale, Key};
-use std::{path::Path, ffi::OsStr, time, thread};
+use std::{path::Path, ffi::OsStr};
 
 use gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use gameboy::cpu::CPU;
 use gameboy::keypad::GbKey;
 use gameboy::cartridge;
-
-const FRAME_TIME: time::Duration = time::Duration::from_millis(16);
+use gameboy::apu::APU;
 
 fn main() {
 
@@ -38,6 +39,8 @@ fn main() {
 
     let mut cpu = CPU::new(cartridge, None);
 
+    let audio_player = initialise_audio(&mut cpu);
+
     let keys = [
         (Key::Right,  GbKey::Right),
         (Key::Up,     GbKey::Up),
@@ -50,15 +53,18 @@ fn main() {
     ];
 
     while display.is_open() {
-        let now = time::Instant::now();
 
-        let mut frame_cycles = 0;
-        while frame_cycles <= 69_905 {
-            let cycles = cpu.step();
-            cpu.mem.update(cycles);
-            frame_cycles += cycles;
+        let cycles = cpu.step();
+        cpu.mem.update(cycles);
+
+        if cpu.mem.gpu.check_updated() {
+            display.update_with_buffer(
+                cpu.mem.gpu.pixels.as_ref(), 
+                SCREEN_WIDTH, 
+                SCREEN_HEIGHT,
+            ).unwrap();
         }
-
+        
         for (input, key) in keys.iter() {
             if display.is_key_down(*input) {
                 cpu.mem.keypad.key_press(key.clone());
@@ -66,16 +72,35 @@ fn main() {
                 cpu.mem.keypad.key_release(key.clone());
             }
         }
-        
-        display.update_with_buffer(
-            cpu.mem.gpu.pixels.as_ref(), 
-            SCREEN_WIDTH, 
-            SCREEN_HEIGHT,
-        ).unwrap();
 
-        match FRAME_TIME.checked_sub(now.elapsed()) {
-            Some(time) => { thread::sleep(time); },
-            None => {},
-        }
+        if !cpu.flip() { continue }
     }
+    drop(audio_player);
+}
+
+fn initialise_audio(cpu: &mut CPU) -> cpal::Stream {
+
+    let device = cpal::default_host().default_output_device().expect("failed to find output device.");
+    let config = device.default_output_config().unwrap();
+    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+    
+    let apu = APU::power_up(config.sample_rate().0);
+    let stream_buffer = apu.buffer.clone();
+    cpu.mem.apu = Some(apu);
+
+    let stream = device.build_output_stream(
+        &config.config(), 
+        move |out_buf: &mut [f32], _: &OutputCallbackInfo | {
+            let mut in_buf = stream_buffer.lock().unwrap();
+            let length = std::cmp::min(out_buf.len() / 2, in_buf.len());
+            
+            for (idx, (data_l, data_r)) in in_buf.drain(..length).enumerate() {
+                out_buf[idx * 2] = data_l;
+                out_buf[idx * 2 + 1] = data_r;
+            }
+        },
+        err_fn,
+    ).unwrap();
+    stream.play().unwrap();
+    stream
 }

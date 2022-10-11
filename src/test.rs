@@ -75,3 +75,44 @@ fn minifb_test() {
         window.update_with_buffer(&buf, 160, 144).unwrap();
     }
 }
+
+    
+// Should play a simmple beep sound.
+#[test]
+fn cpal_test() {
+    use cpal;
+    use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
+
+    let host = cpal::default_host();
+    let device = host.default_output_device().expect("failed to find output device.");
+    println!("Output device: {}", device.name().unwrap());
+    
+    let config = device.default_output_config().unwrap();
+    println!("Default output config: {:?}", config);
+    println!("{:?}", config.sample_format());
+
+    let sample_rate = config.sample_rate().0 as f32;
+    let channels = config.channels() as usize;
+
+    let mut sample_clock = 0f32;
+    let mut nxt_value = move || {
+        sample_clock = (sample_clock + 1.0) % sample_rate;
+        (sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
+    };
+    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+
+    let stream = device.build_output_stream(
+        &config.config(),
+        move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+            for frame in data.chunks_mut(channels) {
+                for sample in frame.iter_mut() {
+                    *sample = nxt_value();
+                }
+            }
+        },
+        err_fn,
+    ).unwrap();
+
+    stream.play().unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(3000));
+}

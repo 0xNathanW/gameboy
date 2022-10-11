@@ -54,6 +54,7 @@ pub struct GPU {
     
     // Raw pixel data, each pixel one of 3 grey shades.
     pub pixels: [u32; SCREEN_HEIGHT * SCREEN_WIDTH],
+    updated: bool,
 
     lcdc: LCDC,
     stat: STAT,
@@ -113,6 +114,7 @@ impl GPU {
             dots: 0,
             intf,
             pixels: [u32::MAX; SCREEN_WIDTH * SCREEN_HEIGHT],
+            updated: false,
         }
     }
 
@@ -172,6 +174,7 @@ impl GPU {
             },
             Mode::VBlank => {
                 self.intf.borrow_mut().set_interrupt(InterruptSource::VBlank);
+                self.updated = true;
                 self.stat.vblank_interrupt
             },
             Mode::OAMRead => { self.stat.oam_interrupt },
@@ -342,11 +345,18 @@ impl GPU {
         for prio in self.bg_priority.iter_mut() {
             *prio = Priority::None;
         }
+        self.updated = true;
     }
 
     fn set_pixel(&mut self, x: usize, colour: u32) {
         let p: u32 = 0xFF_00_00_00 | colour;
         self.pixels[(self.ly as usize) * SCREEN_WIDTH + x] = p;
+    }
+
+    pub fn check_updated(&mut self) -> bool {
+        let updated = self.updated;
+        self.updated = false;
+        updated
     }
 }
 

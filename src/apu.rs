@@ -745,7 +745,7 @@ impl MemoryBus for ChannelNoise {
     }
 }
 
-pub struct Apu {
+pub struct APU {
     pub buffer: Arc<Mutex<Vec<(f32, f32)>>>,
     reg: Register,
     timer: Clock,
@@ -757,7 +757,7 @@ pub struct Apu {
     sample_rate: u32,
 }
 
-impl Apu {
+impl APU {
     pub fn power_up(sample_rate: u32) -> Self {
         let blipbuf1 = create_blipbuf(sample_rate);
         let blipbuf2 = create_blipbuf(sample_rate);
@@ -906,7 +906,7 @@ const RD_MASK: [u8; 48] = [
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
 
-impl MemoryBus for Apu {
+impl MemoryBus for APU {
     fn read_byte(&self, a: u16) -> u8 {
         let r = match a {
             0xff10..=0xff14 => self.channel1.read_byte(a),

@@ -18,7 +18,7 @@ impl Clock {
         let c = self.n / self.period;
         self.n = self.n % self.period;
         c
-    } 
+    }
 }
 
 #[cfg(test)]
