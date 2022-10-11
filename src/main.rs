@@ -31,7 +31,7 @@ fn main() {
     };
 
     let mut display = Window::new(
-        &cartridge.title(),
+        &cartridge.title().to_lowercase(),
         SCREEN_WIDTH,
         SCREEN_HEIGHT,
         opts,
@@ -73,7 +73,7 @@ fn main() {
             }
         }
 
-        if !cpu.flip() { continue }
+        if !cpu.flip() { continue; }
     }
     drop(audio_player);
 }
