@@ -1,3 +1,5 @@
+use std::{path::PathBuf, io::Read, fs::File};
+
 use super::super::bus::MemoryBus;
 
 /*
@@ -11,7 +13,6 @@ compilation carts below.
 */
 #[derive(Default)]
 pub struct MBC1 {
-
     rom: Vec<u8>, 
     // This 5-bit register (range $01-$1F) selects the ROM bank number for the 4000-7FFF region.
     rom_bank: u8,
@@ -27,11 +28,26 @@ pub struct MBC1 {
     // This 1-bit register selects between the two MBC1 banking modes, 
     //controlling the behaviour of the secondary 2-bit banking register (above).
     mode: bool,
+    save_path: Option<PathBuf>,
 }
 
 impl MBC1 {
-    pub fn new(rom: Vec<u8>, ram: Vec<u8>) -> Self {
-        Self { ram, rom, rom_bank: 1, ..Default::default() }
+    pub fn new(rom: Vec<u8>, ram: Vec<u8>, save_path: Option<PathBuf>) -> Self {
+        let mut mbc = Self { save_path, ram, rom, rom_bank: 1, ..Default::default() };
+        mbc.load_save();
+        mbc
+    }
+
+    // Read save data into RAM.
+    fn load_save(&mut self) {
+        if self.save_path.is_some() {
+            match File::open(self.save_path.as_ref().unwrap()) {
+                Ok(mut path) => {
+                    path.read_to_end(&mut self.ram).unwrap();
+                },
+                Err(_) => {},
+            }
+        }
     }
 }
 
@@ -43,7 +59,7 @@ impl MemoryBus for MBC1 {
             0x0000 ..= 0x3FFF => self.rom[address as usize],
             // 4000-7FFF - ROM Bank 01-7F (Read Only)
             0x4000 ..= 0x7FFF => {
-                let offset = 16_384 * self.rom_bank as usize;
+                let offset = 0x4000 * self.rom_bank as usize;
                 self.rom[offset + (address as usize - 0x4000)]
             }
             // A000-BFFF - RAM Bank 00-03, if any (Read/Write)
@@ -51,7 +67,9 @@ impl MemoryBus for MBC1 {
                 if self.ram_enable {
                     let offset = self.ram_bank as usize * 8_192;  
                     self.ram[offset + address as usize - 0xA000] 
-                } else { 0 }
+                } else { 
+                    0 
+                }
             },
             _ => 0,
         }
@@ -61,18 +79,18 @@ impl MemoryBus for MBC1 {
         match address {
             // Registers.
             // Any value with 0xa in the lower 4 bits enables ram.
-            0x0000 ..= 0x1FFF => self.ram_enable = b & 0b1111 == 0xA,
+            0x0000 ..= 0x1FFF => self.ram_enable = b & 0x0F == 0x0A,
             // ROM bank number (write only) - lower 5 bits.
             0x2000 ..= 0x3FFF => {
                 let n = if b == 0 { 1 } else { b };
-                self.rom_bank = self.rom_bank & 0b1100000 | n & 0b11111;
+                self.rom_bank = self.rom_bank & 0b0110_0000 | n & 0b0001_1111;
             }
             // RAM Bank Number - or - Upper Bits of ROM Bank Number (Write Only)
             0x4000 ..= 0x5FFF => {
                 if self.mode {
                     self.ram_bank = b & 0b11;
                 } else {
-                    self.rom_bank = self.rom_bank & 0b11111 | (b & 0b11) << 5;
+                    self.rom_bank = self.rom_bank & 0b0001_1111 | (b & 3) << 5;
                 }
             },
             // Banking Mode Select (Write Only)

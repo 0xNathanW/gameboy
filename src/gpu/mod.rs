@@ -247,7 +247,7 @@ impl GPU {
         let line = self.ly as i16;
         let size = self.lcdc.sprite_size as i16;
         // We reverse as sprites with lower idx have pixel priority.
-        for idx in (0..39).rev() {
+        for idx in (0..40).rev() {
 
             let sprite = self.fetch_sprite(idx);
             // Skip if out of bounds.
@@ -266,7 +266,7 @@ impl GPU {
                 self.read_byte(tile_data_address + 1),
             ];
 
-            // Iterate width settin each pixel.
+            // Iterate width setting each pixel.
             for x in 0..8 {
                 let pix_x = sprite.x + x;
                 // Skip out of bounds pixels.

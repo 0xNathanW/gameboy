@@ -35,10 +35,10 @@ impl LCDC {
     pub fn new() -> Self {
         LCDC {
             lcd_enable:         false,
-            window_tilemap:     0x9800,
+            window_tilemap:     0x9C00,
             window_enable:      false,
             bg_window_tilemap:  0x8800,
-            bg_tilemap:         0x9800,
+            bg_tilemap:         0x9C00,
             sprite_size:        8,
             sprite_enable:      false,
             bg_window_enable:   false,

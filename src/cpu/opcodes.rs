@@ -324,7 +324,7 @@ impl CPU {
                 self.mem.write_byte(addr, self.regs.a); 12 
             },
             // LDH A, (n) - put memory address $FF00+n into A.
-            0xF0 => { let b = self.next_byte(); self.regs.a = self.mem.read_byte(0xFF00 | b as u16); 12 },
+            0xF0 => { let b = self.next_byte(); self.regs.a = self.mem.read_byte(0xFF00 | (b as u16)); 12 },
             
             // 16-bit loads.
             // LD n, nn - put value nn into n.

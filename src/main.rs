@@ -95,8 +95,8 @@ fn main() {
         (Key::Up,     GbKey::Up),
         (Key::Left,   GbKey::Left),
         (Key::Down,   GbKey::Down),
-        (Key::J,      GbKey::A),
-        (Key::K,      GbKey::B),
+        (Key::Z,      GbKey::A),
+        (Key::X,      GbKey::B),
         (Key::Space,  GbKey::Select),
         (Key::Enter,  GbKey::Start),
     ];
