@@ -40,8 +40,8 @@ pub struct Timer {
 
 impl MemoryBus for Timer {
 
-    fn read_byte(&self, addr: u16) -> u8 {
-        match addr {
+    fn read_byte(&self, address: u16) -> u8 {
+        match address {
             0xFF04 => self.divider,
             0xFF05 => self.counter,
             0xFF06 => self.modulo,
@@ -57,12 +57,12 @@ impl MemoryBus for Timer {
                 }
                 b
             },
-            _ => panic!("address for timer not supported: {:?}", addr)
+            _ => panic!("invalid memory read for timer at {:#2X}", address),
         }
     }
 
-    fn write_byte(&mut self, addr: u16, b: u8) {
-        match addr {
+    fn write_byte(&mut self, address: u16, b: u8) {
+        match address {
             0xFF04 => { self.divider = b },
             0xFF05 => { self.counter = b },
             0xFF06 => { self.modulo = b },
@@ -76,7 +76,7 @@ impl MemoryBus for Timer {
                     _ => panic!("timer period not supported (write): {:4X}", b & 0b11), 
                 }
             }
-            _ => panic!("address for timer not supported: {:?}", addr)
+            _ => panic!("invalid memory write for timer at {:#2X}", address),
         };
     }
 }

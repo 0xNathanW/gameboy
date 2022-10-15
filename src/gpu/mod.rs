@@ -372,7 +372,7 @@ impl MemoryBus for GPU {
             0xFF49 => self.sprite_palette_1.read_byte(address),
             0xFF4A => self.window_y,
             0xFF4B => self.window_x,
-            _ => panic!("unsupported gpu address (read): {:#2X}", address),
+            _ => panic!("invalid memory read for gpu at {:#2X}", address),
         }
     }
 
@@ -406,7 +406,7 @@ impl MemoryBus for GPU {
             0xFF49 => self.sprite_palette_1.write_byte(address, b),
             0xFF4A => self.window_y     = b,
             0xFF4B => self.window_x     = b,
-            _ => panic!("unsupported gpu address (write): {:#2X}", address),
+            _ => panic!("invalid memory write for gpu at {:#2X}", address),
         };
     }
 }

@@ -37,7 +37,7 @@ impl MemoryBus for Serial {
         match address {
             0xFF01 => self.data,
             0xFF02 => self.control,
-            _ => panic!("accessing serial with address not supported (read).")
+            _ => panic!("invalid memory read for serial at {:#2X}", address),
         }
     }
 
@@ -57,7 +57,7 @@ impl MemoryBus for Serial {
                     }
                 }
             },
-            _ => panic!("accessing serial with address not supported (write).")
+            _ => panic!("invalid memory write for serial at {:#2X}", address),
         }
     }
 }

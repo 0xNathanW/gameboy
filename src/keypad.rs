@@ -88,6 +88,6 @@ impl MemoryBus for KeyPad {
     // The only keypad write is to switch which keys are read.
     fn write_byte(&mut self, address: u16, b: u8) { 
         assert_eq!(address, 0xFF00);
-        self.select = b & 0b00110000; 
+        self.select = b & 0b0011_0000; 
     }
 }

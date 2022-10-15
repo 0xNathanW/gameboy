@@ -18,11 +18,11 @@ impl Palette {
     pub fn new() -> Self { Self::default() }
 
     pub fn get_shade(&self, idx: usize) -> u32 {
-        match (self.data >> 2 * idx) & 0b11 {
-            0b00 => 0xE9EFEC,     // Lightest
-            0b01 => 0xA0A08B,
-            0b10 => 0x555568, 
-            0b11 => 0x211E20,      // Darkest
+        match (self.data >> 2 * idx) & 3 {
+            0b00 => 0xe0f8d0,     // Lightest
+            0b01 => 0x88c070,
+            0b10 => 0x346856, 
+            0b11 => 0x081820,      // Darkest
             _    => panic!("invalid colour"),
          }
     }
@@ -49,9 +49,9 @@ mod test {
         let mut pal = Palette::new();
         pal.write_byte(0x0000, 0b1011_0010);
         pal.update();
-        assert_eq!(pal.colours[0], 96);
-        assert_eq!(pal.colours[1], 255);
-        assert_eq!(pal.colours[2], 0);
-        assert_eq!(pal.colours[3], 96);
+        assert_eq!(pal.colours[0], 0x346856);
+        assert_eq!(pal.colours[1], 0xe0f8d0);
+        assert_eq!(pal.colours[2], 0x081820);
+        assert_eq!(pal.colours[3], 0x346856);
     }
 }
