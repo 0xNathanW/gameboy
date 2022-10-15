@@ -1,7 +1,7 @@
 # Gameboy
 A Gameboy emulator written in Rust.
 
-<img src="assets/pokemon.gif" width="500"> <img src="assets/dr_mario.gif" width="500">
+<img src="assets/pokemon.gif" width="400"> <img src="assets/dr_mario.gif" width="400">
 
 ## Installation
 Note - Currently only tested on Windows.
