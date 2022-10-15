@@ -1,6 +1,7 @@
-use std::{path::PathBuf, io::Read, fs::File};
+use std::{path::PathBuf, io::{Read, Write, ErrorKind}, fs::File, vec};
 
 use super::super::bus::MemoryBus;
+use super::load_save;
 
 /*
 In its default configuration, MBC1 supports up to 512 KiB ROM with up to 
@@ -32,21 +33,32 @@ pub struct MBC1 {
 }
 
 impl MBC1 {
-    pub fn new(rom: Vec<u8>, ram: Vec<u8>, save_path: Option<PathBuf>) -> Self {
-        let mut mbc = Self { save_path, ram, rom, rom_bank: 1, ..Default::default() };
-        mbc.load_save();
-        mbc
-    }
+    pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>) -> Self {
+        
+        let ram = match save_path {
+            Some(ref path) => load_save(path, ram_size),
+            None => vec![0; ram_size],
+        };
 
-    // Read save data into RAM.
-    fn load_save(&mut self) {
-        if self.save_path.is_some() {
-            match File::open(self.save_path.as_ref().unwrap()) {
-                Ok(mut path) => {
-                    path.read_to_end(&mut self.ram).unwrap();
-                },
-                Err(_) => {},
-            }
+        Self { 
+            ram, 
+            rom, 
+            rom_bank: 1, 
+            save_path, 
+            ..Default::default() 
+        }
+    }
+}
+
+// Saves contents of ram to savefile when dropped.
+impl Drop for MBC1 {
+    fn drop(&mut self) {
+        match &self.save_path {
+            Some(path) => {
+                File::create(path).and_then(|mut f| f.write_all(&self.ram)).unwrap();
+                println!("save write");
+            },
+            None => {},
         }
     }
 }

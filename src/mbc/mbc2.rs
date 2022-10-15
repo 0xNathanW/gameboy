@@ -1,6 +1,7 @@
-use std::{path::PathBuf, fs::File, io::Read};
+use std::{path::PathBuf, fs::File, io::{Read, Write}};
 
 use crate::bus::MemoryBus;
+use super::load_save;
 
 // (max 256 KiB ROM and 512x4 bits RAM)
 
@@ -16,20 +17,31 @@ pub struct MBC2 {
 }
 
 impl MBC2 {
-    pub fn new(rom: Vec<u8>, ram: Vec<u8>, save_path: Option<PathBuf>) -> Self {
-        let mut mbc = Self { save_path, ram, rom, ram_enable: false, rom_bank: 1 };
-        mbc.load_save();
-        mbc
-    }
+    pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>) -> Self {
+        
+        let ram = match save_path {
+            Some(ref path) => load_save(path, ram_size),
+            None => vec![0; ram_size],
+        };
 
-    fn load_save(&mut self) {
-        if self.save_path.is_some() {
-            match File::open(self.save_path.as_ref().unwrap()) {
-                Ok(mut path) => {
-                    path.read_to_end(&mut self.ram).unwrap();
-                },
-                Err(_) => {},
-            }
+        Self { 
+            ram,
+            ram_enable: false,
+            rom,
+            rom_bank: 1, 
+            save_path, 
+        }
+    }
+}
+
+// Saves contents of ram to savefile when dropped.
+impl Drop for MBC2 {
+    fn drop(&mut self) {
+        match self.save_path.clone() {
+            Some(path) => {
+                File::create(path).and_then(|mut f| f.write_all(&self.ram)).unwrap();
+            },
+            None => {},
         }
     }
 }

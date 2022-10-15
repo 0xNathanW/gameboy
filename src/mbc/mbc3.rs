@@ -1,11 +1,12 @@
 use std::{
     path::PathBuf, 
     fs::File, 
-    io::Read,
+    io::{Read, Write},
     time::SystemTime,
 };
 
 use crate::bus::MemoryBus;
+use super::load_save;
 
 /*
 (max 2MByte ROM and/or 32KByte RAM and Timer)
@@ -127,28 +128,21 @@ pub struct MBC3 {
 }
 
 impl MBC3 {
-    pub fn new(rom: Vec<u8>, ram: Vec<u8>, save_path: Option<PathBuf>, rtc_path: Option<PathBuf>) -> Self {
-        let mut mbc = Self {
-            rom,
-            rom_bank: 1, 
+    pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>, rtc_path: Option<PathBuf>) -> Self {
+        
+        let ram = match save_path {
+            Some(ref path) => load_save(path, ram_size),
+            None => vec![0; ram_size],
+        };
+
+        Self {
             ram,
-            ram_bank: 0,
+            ram_bank: 1,
+            rom,
+            rom_bank: 0,
             ram_enable: false,
             save_path,
             rtc: RealTimeClock::new(rtc_path),
-        };
-        mbc.load_save();
-        mbc
-    }
-
-    fn load_save(&mut self) {
-        if self.save_path.is_some() {
-            match File::open(self.save_path.as_ref().unwrap()) {
-                Ok(mut path) => {
-                    path.read_to_end(&mut self.ram).unwrap();
-                },
-                Err(_) => {},
-            }
         }
     }
 }

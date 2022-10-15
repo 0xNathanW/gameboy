@@ -64,69 +64,68 @@ pub fn open_cartridge(p: &Path) -> Box<dyn Cartridge>{
     if buf.len() < 0x0150 {
         panic!("missing info in cartridge header")
     }
-    println!("{:#2X}", buf[0x147]);
     // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
     let cartridge: Box<dyn Cartridge> = match buf[0x147] {
         // ROM only.
         0x00 => Box::new(ROM::new(buf)),
         // MBC1.
-        0x01 => Box::new(MBC1::new(buf, vec![], None)),
+        0x01 => Box::new(MBC1::new(buf, 0, None)),
         // MBC1 + RAM. 
         0x02 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC1::new(buf, vec![0; ram_size], None))
+            Box::new(MBC1::new(buf, ram_size, None))
         },
         // MBC1 + RAM + BATTERY.
         0x03 => {
             let ram_size = ram_size(buf[0x149]);
-            let save_path = Some(p.to_path_buf().with_extension("gbsave"));
-            Box::new(MBC1::new(buf, vec![0; ram_size], save_path))
+            let save_path = Some(p.to_path_buf().with_extension("sav"));
+            Box::new(MBC1::new(buf, ram_size, save_path))
         },
         // MBC2.
-        0x05 => Box::new(MBC2::new(buf, vec![0; 512], None)),
+        0x05 => Box::new(MBC2::new(buf, 512, None)),
         // MBC2 + BATTERY.
         0x06 => {
-            let save_path = Some(p.to_path_buf().with_extension("gbsave"));
-            Box::new(MBC2::new(buf, vec![0; 512], save_path))
+            let save_path = Some(p.to_path_buf().with_extension("sav"));
+            Box::new(MBC2::new(buf, 512, save_path))
         },
         // MBC3 + TIMER + BATTERY.
         0x0F => {
-            let save_path = Some(p.to_path_buf().with_extension("gbsave"));
+            let save_path = Some(p.to_path_buf().with_extension("sav"));
             let rtc_path = Some(p.to_path_buf().with_extension("rtc"));
-            Box::new(MBC3::new(buf, vec![], save_path, rtc_path))
+            Box::new(MBC3::new(buf, 0, save_path, rtc_path))
         },
         // MBC3 + TIMER + RAM + BATTERY. 
         0x10 => {
             let ram_size = ram_size(buf[0x149]);
-            let save_path = Some(p.to_path_buf().with_extension("gbsave"));
+            let save_path = Some(p.to_path_buf().with_extension("sav"));
             let rtc_path = Some(p.to_path_buf().with_extension("rtc"));
-            Box::new(MBC3::new(buf, vec![0; ram_size], save_path, rtc_path))
+            Box::new(MBC3::new(buf, ram_size, save_path, rtc_path))
         },
         // MBC3.
-        0x11 => Box::new(MBC3::new(buf, vec![], None, None)),
+        0x11 => Box::new(MBC3::new(buf, 0, None, None)),
         // MBC3 + RAM.
         0x12 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC3::new(buf, vec![0; ram_size], None, None))
+            Box::new(MBC3::new(buf, ram_size, None, None))
         },
         // MBC3 + RAM + BATTERY.
         0x13 => {
             let ram_size = ram_size(buf[0x149]);
-            let save_path = Some(p.to_path_buf().with_extension("gbsave"));
-            Box::new(MBC3::new(buf, vec![0; ram_size], save_path, None))
+            let save_path = Some(p.to_path_buf().with_extension("sav"));
+            Box::new(MBC3::new(buf, ram_size, save_path, None))
         },
         // MBC5.
-        0x19 => Box::new(MBC5::new(buf, vec![], None)),
+        0x19 => Box::new(MBC5::new(buf, 0, None)),
         // MBC5 + RAM.
         0x1A => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC5::new(buf, vec![0; ram_size], None))
+            Box::new(MBC5::new(buf, ram_size, None))
         },
         // MBC5 + RAM + BATTERY.
         0x1B => {
             let ram_size = ram_size(buf[0x149]);
-            let save_path = Some(p.to_path_buf().with_extension("gbsave"));
-            Box::new(MBC5::new(buf, vec![0; ram_size], save_path))
+            let save_path = Some(p.to_path_buf().with_extension("sav"));
+            Box::new(MBC5::new(buf, ram_size, save_path))
         },
         unknown => panic!("unsupported cartridge type, {:#X}", unknown),
     };
