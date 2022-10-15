@@ -1,7 +1,7 @@
 use std::{
     path::PathBuf, 
     fs::File, 
-    io::{Read, Write},
+    io::Write,
     time::SystemTime,
 };
 
@@ -20,8 +20,7 @@ struct RealTimeClock {
     hours:      u8,
     dl:         u8,
     dh:         u8,
-    zero:       u64,
-    path:       PathBuf,
+    pub zero:       u64,
 }
 
 impl RealTimeClock {
@@ -45,7 +44,6 @@ impl RealTimeClock {
                     hours: 0,
                     dl: 0,
                     dh: 0,
-                    path,
                     zero
                     })
             },
@@ -151,10 +149,21 @@ impl MBC3 {
 impl Drop for MBC3 {
     fn drop(&mut self) {
         match self.save_path.clone() {
-            Some(path) => {
-                File::create(path).and_then(|mut f| f.write_all(&self.ram)).unwrap();
-            },
             None => {},
+            Some(path) => {
+                let mut file = match File::create(path) {
+                    Ok(f) => f,
+                    Err(_) => return,
+                };
+                // Write real time clock.
+                if self.rtc.is_some() {
+                    file.write_all(
+                        &self.rtc.as_ref().unwrap().zero.to_be_bytes()
+                    ).unwrap();
+                }
+                // Write ram.
+                file.write_all(&*self.ram).unwrap();
+            },
         }
     }
 }

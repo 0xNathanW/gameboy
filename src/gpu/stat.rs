@@ -1,5 +1,3 @@
-use std::default;
-
 use crate::bus::MemoryBus;
 use crate::bit::Bit;
 

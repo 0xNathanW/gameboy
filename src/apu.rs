@@ -1,5 +1,4 @@
 use super::clock::Clock;
-use super::cpu;
 use super::bus::MemoryBus;
 use blip_buf::BlipBuf;
 use std::cell::RefCell;

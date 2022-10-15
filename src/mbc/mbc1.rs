@@ -1,4 +1,4 @@
-use std::{path::PathBuf, io::{Read, Write, ErrorKind}, fs::File, vec};
+use std::{path::PathBuf, io::Write, fs::File, vec};
 
 use super::super::bus::MemoryBus;
 use super::load_save;

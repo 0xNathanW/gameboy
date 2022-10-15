@@ -1,4 +1,4 @@
-use std::{path::Path, time, thread};
+use std::{time, thread};
 
 use super::cartridge::Cartridge;
 use super::bus::MemoryBus;

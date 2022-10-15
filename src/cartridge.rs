@@ -1,8 +1,4 @@
-use std::io::Read;
 use std::path::Path;
-use std::fs::File;
-
-use cpal::Sample;
 
 use super::bus::MemoryBus;
 use super::mbc::mbc1::MBC1;

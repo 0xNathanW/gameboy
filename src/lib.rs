@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_imports)]
 pub mod cpu;
 pub mod cartridge;
 pub mod keypad;

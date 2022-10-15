@@ -1,8 +1,3 @@
-const CPU_CHECKSUM: u32 = 3112234583;
-
-// 3112234583
-// 3541534464
-
 // Tests all cpu instructions, results printed in std output.
 // Thus, make sure to run with "cargo test cpu_instructions -- --nocapture"
 #[test]
