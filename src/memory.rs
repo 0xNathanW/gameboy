@@ -95,7 +95,7 @@ impl MemoryBus for Memory {
 
             // 0xFFFF   Interrupt Enable (R/W)
             0xFFFF => self.inte,
-            _ => panic!("invalid memory address {:#2X}", address),
+            _ => 0,
         }
     }
 
@@ -120,7 +120,7 @@ impl MemoryBus for Memory {
             0xFF47 ..= 0xFF4B => self.gpu.write_byte(address, b),
             0xFF80 ..= 0xFFFE => self.hram[address as usize - 0xFF80] = b,
             0xFFFF => self.inte = b,
-            _ => panic!("invalid memory address {:#2X}", address),
+            _ => {},
         }
     }
 }
