@@ -147,6 +147,18 @@ impl MBC3 {
     }
 }
 
+// Saves contents of ram to savefile when dropped.
+impl Drop for MBC3 {
+    fn drop(&mut self) {
+        match self.save_path.clone() {
+            Some(path) => {
+                File::create(path).and_then(|mut f| f.write_all(&self.ram)).unwrap();
+            },
+            None => {},
+        }
+    }
+}
+
 impl MemoryBus for MBC3 {
     
     fn read_byte(&self, address: u16) -> u8 {
