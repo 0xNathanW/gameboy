@@ -25,7 +25,7 @@ struct Args {
     #[arg(default_value = "false")]
     audio:  bool,
 
-    #[arg(short, long, help = "print serial write to stdout")]
+    #[arg(short, long, help = "Print serial write to stdout")]
     #[arg(default_value = "false")]
     serial: bool,
 }
