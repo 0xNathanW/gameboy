@@ -14,7 +14,7 @@ Alternatively you can grab the binary from releases.
 
 ![image](https://user-images.githubusercontent.com/86011312/196007956-21586824-334e-42b3-96c6-cc92470c6bfa.png)
 
-Saves will write to a .sav file in the same directory as the ROM.  Likewise, to read a save make sure it is in the same file as the ROM.
+Saves will write to a .sav file in the same directory as the ROM.  Likewise, to read a save make sure it is in the same directory as the ROM.
 
 ### Controls
 | Input       | Key         |
