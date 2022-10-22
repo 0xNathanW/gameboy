@@ -176,4 +176,7 @@ impl Memory {
             self.gpu.write_byte(0xFE00 + x, self.read_byte(base_address + x));
         }
     }
+
+    // Save the cartridge RAM.
+    pub fn save(&self) { self.cartridge.save(); }
 }

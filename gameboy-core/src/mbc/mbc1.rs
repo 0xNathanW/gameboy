@@ -1,5 +1,7 @@
 use std::{path::PathBuf, io::Write, fs::File, vec};
 
+use crate::cartridge::Cartridge;
+
 use super::super::bus::MemoryBus;
 use super::load_save;
 
@@ -50,14 +52,14 @@ impl MBC1 {
     }
 }
 
-// Saves contents of ram to savefile when dropped.
-impl Drop for MBC1 {
-    fn drop(&mut self) {
+impl Cartridge for MBC1 {
+    fn save(&self) {
         match &self.save_path {
             Some(path) => {
-                File::create(path).and_then(|mut f| f.write_all(&self.ram)).unwrap();
-                println!("save write");
-            },
+                File::create(path).and_then(
+                    |mut f| f.write_all(&self.ram)
+                ).unwrap()
+            }
             None => {},
         }
     }

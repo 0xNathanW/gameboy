@@ -3,14 +3,14 @@
 #[test]
 fn cpu_instructions() {
     use std::path::Path;
-    use super::cpu::CPU;
-    use super::cartridge;
+    use gameboy_core::cpu::CPU;
+    use gameboy_core::cartridge;
 
     let test_path = Path::new("./test_roms/cpu_instrs/cpu_instrs.gb");
     assert!(test_path.exists());
 
     let callback = |b: u8| { print!("{}", b as char); };
-    let cartridge = cartridge::open_cartridge(test_path);
+    let cartridge = cartridge::open_from_path(test_path);
 
     let mut cpu = CPU::new(
         cartridge,
@@ -40,15 +40,15 @@ fn minifb_test() {
 
     let mut window = Window::new(
         "test", 
-        160, 
-        144, 
+        gameboy_core::SCREEN_WIDTH, 
+        gameboy_core::SCREEN_HEIGHT,
         WindowOptions {
             scale: Scale::X8,
             ..Default::default()
         }
     ).unwrap();
 
-    let mut buf: Vec<u32> = vec![0; 144 * 160];
+    let mut buf: Vec<u32> = vec![0; gameboy_core::SCREEN_HEIGHT * gameboy_core::SCREEN_WIDTH];
     
     let mut r: u8 = 0; let mut g: u8 = 0; let mut b: u8 = 0;
 

@@ -1,0 +1,10 @@
+[package]
+name = "gameboy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+minifb = "0.23"
+cpal = "0.14.0"
+clap = { version = "4.0.13", features = ["derive"] }
+gameboy-core = { version = "0.1.0", path = "../gameboy-core" }

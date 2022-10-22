@@ -1,6 +1,6 @@
 use std::{path::PathBuf, fs::File, io::Write};
 
-use crate::bus::MemoryBus;
+use crate::{bus::MemoryBus, cartridge::Cartridge};
 use super::load_save;
 
 pub struct MBC5 {
@@ -33,13 +33,14 @@ impl MBC5 {
     }
 }
 
-// Saves contents of ram to savefile when dropped.
-impl Drop for MBC5 {
-    fn drop(&mut self) {
-        match self.save_path.clone() {
+impl Cartridge for MBC5 {
+    fn save(&self) {
+        match &self.save_path {
             Some(path) => {
-                File::create(path).and_then(|mut f| f.write_all(&self.ram)).unwrap();
-            },
+                File::create(path).and_then(
+                    |mut f| f.write_all(&self.ram)
+                ).unwrap()
+            }
             None => {},
         }
     }

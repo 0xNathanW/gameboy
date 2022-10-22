@@ -37,3 +37,10 @@ bgbrecovery.sna
 bgb64.exe
 
 /game_roms
+
+gameboy-wasm//target
+gameboy-wasm/**/*.rs.bk
+gameboy-wasm/Cargo.lock
+gameboy-wasm/bin/
+gameboy-wasm/pkg/
+gameboy-wasm/wasm-pack.log

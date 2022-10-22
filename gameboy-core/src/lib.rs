@@ -15,6 +15,3 @@ mod bit;
 mod serial;
 mod clock;
 mod intf;
-
-#[cfg(test)]
-mod test;

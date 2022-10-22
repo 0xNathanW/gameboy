@@ -5,7 +5,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::bus::MemoryBus;
+use crate::{bus::MemoryBus, cartridge::Cartridge};
 use super::load_save;
 
 /*
@@ -145,9 +145,8 @@ impl MBC3 {
     }
 }
 
-// Saves contents of ram to savefile when dropped.
-impl Drop for MBC3 {
-    fn drop(&mut self) {
+impl Cartridge for MBC3 {
+    fn save(&self) {
         match self.save_path.clone() {
             None => {},
             Some(path) => {

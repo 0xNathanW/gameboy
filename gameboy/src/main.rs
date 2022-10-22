@@ -4,12 +4,14 @@ use minifb::{Window, WindowOptions, Scale, Key};
 use clap::Parser;
 use std::{path::Path, ffi::OsStr};
 
-use gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
-use gameboy::cpu::CPU;
-use gameboy::keypad::GbKey;
-use gameboy::cartridge;
-use gameboy::apu::APU;
+use gameboy_core::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use gameboy_core::cpu::CPU;
+use gameboy_core::keypad::GbKey;
+use gameboy_core::cartridge;
+use gameboy_core::apu::APU;
 
+#[cfg(test)]
+mod test;
 
 #[derive(Parser)]
 #[command(author = "Nathanw", about  = "A Rust powered Gameboy emulator.")]
@@ -55,7 +57,7 @@ fn main() {
         panic!("file provided does not have the extention '.gb'"); 
     }
 
-    let cartridge = cartridge::open_cartridge(rom_path);
+    let cartridge = cartridge::open_from_path(rom_path);
 
     let opts = WindowOptions {
         scale: match args.scale {
@@ -127,6 +129,9 @@ fn main() {
 
     // Drop the audio stream if it exists.
     if audio_stream.is_some() { drop(audio_stream.unwrap()) }
+
+    // Save.
+    cpu.mem.save();
 }
 
 fn initialise_audio(cpu: &mut CPU) -> Option<cpal::Stream> {
