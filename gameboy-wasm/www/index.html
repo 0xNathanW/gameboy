@@ -5,12 +5,24 @@
     <title>Hello wasm-pack!</title>
   </head>
   <body>
-    <input 
-        type="file"
-        id="rom-input"
-        value="Upload ROM"
-    >
-    <h1 id="test"></h1>
+    
+    <div class="container">
+        <input 
+            type="file"
+            id="rom-input"
+            value="Upload ROM"
+        >
+    </div>
+
+    <br></br>
+
+    <div class="border">
+        <canvas 
+            id="display" 
+            style="border: 1px solid black;">
+        </canvas>
+    </div>
     <script src="./bootstrap.js"></script>
-  </body>
+  
+</body>
 </html>

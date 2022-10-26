@@ -29,7 +29,10 @@ pub struct CPU {
 
     // Provide control over speed of cpu clock.
     step_cycles:        u32,
+
+    #[cfg(not(target_arch = "wasm32"))]
     step_zero:          time::Instant,
+    
     step_flip:          bool,
 }
 
@@ -44,7 +47,10 @@ impl CPU {
             disable_interrupt:    0,
             enable_interrupt:     0,
             step_cycles:          0,
+
+            #[cfg(not(target_arch = "wasm32"))]
             step_zero:            time::Instant::now(),
+            
             step_flip:            false,
         }
     }
@@ -77,7 +83,7 @@ impl CPU {
 
 impl CPU {
 
-    fn tick(&mut self) -> u32 {
+    pub fn tick(&mut self) -> u32 {
         self.update_ime();
 
         let interrupt_cycles = self.check_interrupts();
@@ -93,11 +99,14 @@ impl CPU {
         }
     }
 
+    // Step runs at the documented 4.19 MHz
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn step(&mut self) -> u32 {
         
         if self.step_cycles > STEP_CYCLES {
             self.step_cycles -= STEP_CYCLES;
             let now = time::Instant::now();
+            
             let d = now.duration_since(self.step_zero);
             let sleep_time = (STEP_TIME.saturating_sub(d.as_millis() as u32)) as u64;
             thread::sleep(time::Duration::from_millis(sleep_time));

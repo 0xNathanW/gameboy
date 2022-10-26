@@ -51,10 +51,13 @@ pub trait Cartridge: MemoryBus {
 
 pub fn open_from_path(p: &Path) -> Box<dyn Cartridge> {
     let buf = std::fs::read(p).expect("failed to read file"); 
-    open_cartridge(buf, p)
+    open_cartridge(buf, Some(p))
 }
 
-pub fn open_cartridge(buf: Vec<u8>, p: &Path) -> Box<dyn Cartridge>{
+pub fn open_cartridge(buf: Vec<u8>, path: Option<&Path>) -> Box<dyn Cartridge>{
+
+    let save_path = path.map(|p| p.to_path_buf().with_extension("sav"));
+    let rtc_path  = path.map(|p| p.to_path_buf().with_extension("rtc"));
 
     // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
     if buf.len() < 0x0150 {
@@ -74,27 +77,17 @@ pub fn open_cartridge(buf: Vec<u8>, p: &Path) -> Box<dyn Cartridge>{
         // MBC1 + RAM + BATTERY.
         0x03 => {
             let ram_size = ram_size(buf[0x149]);
-            let save_path = Some(p.to_path_buf().with_extension("sav"));
             Box::new(MBC1::new(buf, ram_size, save_path))
         },
         // MBC2.
         0x05 => Box::new(MBC2::new(buf, 512, None)),
         // MBC2 + BATTERY.
-        0x06 => {
-            let save_path = Some(p.to_path_buf().with_extension("sav"));
-            Box::new(MBC2::new(buf, 512, save_path))
-        },
+        0x06 => Box::new(MBC2::new(buf, 512, save_path)),
         // MBC3 + TIMER + BATTERY.
-        0x0F => {
-            let save_path = Some(p.to_path_buf().with_extension("sav"));
-            let rtc_path = Some(p.to_path_buf().with_extension("rtc"));
-            Box::new(MBC3::new(buf, 0, save_path, rtc_path))
-        },
+        0x0F => Box::new(MBC3::new(buf, 0, save_path, rtc_path)),
         // MBC3 + TIMER + RAM + BATTERY. 
         0x10 => {
             let ram_size = ram_size(buf[0x149]);
-            let save_path = Some(p.to_path_buf().with_extension("sav"));
-            let rtc_path = Some(p.to_path_buf().with_extension("rtc"));
             Box::new(MBC3::new(buf, ram_size, save_path, rtc_path))
         },
         // MBC3.
@@ -107,7 +100,6 @@ pub fn open_cartridge(buf: Vec<u8>, p: &Path) -> Box<dyn Cartridge>{
         // MBC3 + RAM + BATTERY.
         0x13 => {
             let ram_size = ram_size(buf[0x149]);
-            let save_path = Some(p.to_path_buf().with_extension("sav"));
             Box::new(MBC3::new(buf, ram_size, save_path, None))
         },
         // MBC5.
@@ -120,7 +112,6 @@ pub fn open_cartridge(buf: Vec<u8>, p: &Path) -> Box<dyn Cartridge>{
         // MBC5 + RAM + BATTERY.
         0x1B => {
             let ram_size = ram_size(buf[0x149]);
-            let save_path = Some(p.to_path_buf().with_extension("sav"));
             Box::new(MBC5::new(buf, ram_size, save_path))
         },
         unknown => panic!("unsupported cartridge type, {:#X}", unknown),

@@ -1,6 +1,7 @@
 pub mod cpu;
 pub mod cartridge;
 pub mod keypad;
+#[cfg(feature = "audio")]
 pub mod apu;
 
 pub const SCREEN_WIDTH: usize = 160;
