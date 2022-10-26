@@ -10,7 +10,8 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 pub struct Emulator { 
-    gb: CPU ,
+    gb: CPU,
+    scale: usize,
     pixels: Vec<u8>,
 }
 
@@ -21,7 +22,8 @@ impl Emulator {
         let cartridge = gameboy_core::cartridge::open_cartridge(rom_data, None);
         Self { 
             gb: CPU::new(cartridge, None),
-            pixels: vec![0; 160 * 144 * 4 * 4],
+            scale: 4,
+            pixels: vec![0; 160 * 144 * 16 * 4],
         }
     }
 
@@ -71,26 +73,32 @@ impl Emulator {
     //  Rerturns pointer to vec.
     pub fn pixels_ptr(&mut self) -> *const u8 {
         
+        let row_pix = 160 * self.scale * 4;
         for (i, raw) in self.gb.mem.gpu.pixels.iter().enumerate() {
             
-            let r = i / 160;
+            let row = i / 160;
+            let col = i % 160;
             let mut rgba = (raw << 8).to_be_bytes();
             rgba[3] = 255;  // Opacity.
 
             for (j, c) in rgba.iter().enumerate() {
-                // x 
-                self.pixels[(i * 2 * 4) + (r * 160 * 2 * 4) + j]           = *c;
-                self.pixels[(i * 2 * 4) + (r * 160 * 2 * 4) + j + 4]       = *c;
-                // y
-                self.pixels[(i * 2 * 4) + ((r + 1) * 160 * 2 * 4) + j]     = *c;
-                self.pixels[(i * 2 * 4) + ((r + 1) * 160 * 2 * 4) + j + 4] = *c;
+                for n in 0..self.scale {
+                    for m in 0..self.scale {
+                        self.pixels[
+                            ((col * self.scale * 4) + (4 * n)) +    // x
+                            (((row * 4) + m) * row_pix)             // y
+                            + j                                     // offset
+                        ] = *c;
+                    }
+                }
             }
         }
         self.pixels.as_ptr()
     }
 
-    pub fn flip(&mut self) -> bool {
-        self.gb.flip()
+    pub fn set_scale(&mut self, s: usize) {
+        self.scale = s;
+        self.pixels = vec![0; s.pow(2) * 4];
     }
 }
 
