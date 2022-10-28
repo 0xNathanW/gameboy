@@ -3,26 +3,107 @@
   <head>
     <meta charset="utf-8">
     <title>GB-WASM</title>
+    <link href='https://fonts.googleapis.com/css?family=Press Start 2P' rel='stylesheet'>
+    <style>
+        body {
+            background-image: url('648115.jpg');
+            background-attachment: fixed;
+            background-size: cover;
+        }
+
+        h1 {
+            font-family: 'Press Start 2P';
+            font-size: 70px;
+            color: #88c070;
+            -webkit-text-stroke: 2px #332c50;
+            text-align: center;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+        }
+        
+        .head {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+
+        label {
+            vertical-align: middle;
+        }
+
+        select {
+            border: 3px solid;
+            border-color: #332c50;
+            border-radius: 7px;
+            background-color:#e0f8d0;
+        }
+
+        canvas {
+            background-color: #e0f8d0;
+        }
+    </style>
   </head>
   <body>
     
-    <div class="container">
-        <input 
-            type="file"
-            id="rom-input"
-            value="Upload ROM"
-        >
-    </div>
+    <h1 id="title"> GameBoy.wasm </h1> 
 
-    <br></br>
+    <div class="main">
+        <div class="head"> 
 
-    <div class="border">
+                
+            <input
+                type="file"
+                id="rom-input"
+                style="
+                color: #332c50;
+                font-weight: bolder;
+                font-family: 'Lucida Console', 'Courier New', monospace;
+                font-size: x-large;
+                "
+            >
+
+            <label 
+                for="scale"
+                style="
+                color: #332c50;
+                font-family: 'Lucida Console', 'Courier New', monospace;
+                font-size: x-large;
+                "
+                >
+                <b>Scale:</b>
+            </label>
+
+            <select 
+                name="scale" 
+                id="scale"
+                style="
+                color: #332c50;
+                font-family: 'Lucida Console', 'Courier New', monospace;
+                font-size: x-large;
+                "
+            >
+                <option value="2x"><b>2x</b></option>
+                <option value="4x"><b>4x</b></option>
+                <option value="8x"><b>8x</b></option>
+            </select>
+        
+        </div>
+        <br></br>
+        
         <canvas 
             id="display"
             height="576" width="640"
-            style="border: 1px solid black;">
-        </canvas>
+            style="border: 4px solid #332c50;"
+        >
+    </canvas>
+    
     </div>
+
     <script src="./bootstrap.js"></script>
   
 </body>

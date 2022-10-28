@@ -5,11 +5,13 @@ import { memory } from "gameboy-wasm/gameboy_wasm_bg";
 const canvas = document.getElementById("display");
 const ctx = canvas.getContext("2d");
 
+ctx.font = 'bolder 25px Lucida Console';
+ctx.textAlign = "center";
+ctx.fillText("Choose a file\n to load as a ROM...", canvas.width/2, canvas.height/2);
+
 const WIDTH = 160;
 const HEIGHT = 144;
 var scale = 4;
-
-
 
 class Gameboy {
     
