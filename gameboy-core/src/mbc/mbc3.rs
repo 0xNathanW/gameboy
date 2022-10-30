@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::{bus::MemoryBus, cartridge::Cartridge};
+#[cfg(not(target_arch = "wasm32"))]
 use super::load_save;
 
 /*
@@ -126,6 +127,7 @@ pub struct MBC3 {
 }
 
 impl MBC3 {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>, rtc_path: Option<PathBuf>) -> Self {
         
         let ram = match save_path {
@@ -143,9 +145,29 @@ impl MBC3 {
             rtc: RealTimeClock::new(rtc_path),
         }
     }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn new(rom: Vec<u8>, ram_size: usize, save_data: Option<Vec<u8>>, rtc_path: Option<PathBuf>) -> Self {
+        
+        let ram = match save_data {
+            Some(data) => data,
+            None => vec![0; ram_size],
+        };
+
+        Self {
+            ram,
+            ram_bank: 1,
+            rom,
+            rom_bank: 0,
+            ram_enable: false,
+            save_path: None, 
+            rtc: RealTimeClock::new(rtc_path),
+        }
+    }
 }
 
 impl Cartridge for MBC3 {
+    #[cfg(not(target_arch = "wasm32"))]
     fn save(&self) {
         match self.save_path.clone() {
             None => {},
@@ -164,6 +186,11 @@ impl Cartridge for MBC3 {
                 file.write_all(&*self.ram).unwrap();
             },
         }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn save(&self) -> *const u8 {
+        self.ram.as_ptr()
     }
 }
 

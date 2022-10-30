@@ -57,7 +57,7 @@ fn main() {
         panic!("file provided does not have the extention '.gb'"); 
     }
 
-    let cartridge = cartridge::open_from_path(rom_path);
+    let cartridge = cartridge::open_cartridge(rom_path);
 
     let opts = WindowOptions {
         scale: match args.scale {

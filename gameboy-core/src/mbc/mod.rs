@@ -5,6 +5,7 @@ pub mod mbc2;
 pub mod mbc3;
 pub mod mbc5;
 
+#[cfg(not(target_arch = "wasm32"))]
 fn load_save(save_path: &PathBuf, ram_size: usize) -> Vec<u8> {
     match File::open(save_path) {
         Ok(mut file) => {
@@ -18,3 +19,4 @@ fn load_save(save_path: &PathBuf, ram_size: usize) -> Vec<u8> {
         Err(..) => panic!("could not read file"),
     }
 }
+

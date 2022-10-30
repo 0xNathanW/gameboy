@@ -184,5 +184,9 @@ impl Memory {
     }
 
     // Save the cartridge RAM.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn save(&self) { self.cartridge.save(); }
+    
+    #[cfg(target_arch = "wasm32")]
+    pub fn save(&self) -> *const u8 { self.cartridge.save() }
 }

@@ -1,6 +1,7 @@
 use std::{path::PathBuf, fs::File, io::Write};
 
 use crate::{bus::MemoryBus, cartridge::Cartridge};
+#[cfg(not(target_arch = "wasm32"))]
 use super::load_save;
 
 // (max 256 KiB ROM and 512x4 bits RAM)
@@ -17,6 +18,7 @@ pub struct MBC2 {
 }
 
 impl MBC2 {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>) -> Self {
         
         let ram = match save_path {
@@ -32,9 +34,27 @@ impl MBC2 {
             save_path, 
         }
     }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn new(rom: Vec<u8>, ram_size: usize, save_data: Option<Vec<u8>>) -> Self {
+        
+        let ram = match save_data {
+            Some(data) => data,
+            None => vec![0; ram_size],
+        };
+
+        Self { 
+            ram,
+            ram_enable: false,
+            rom,
+            rom_bank: 1, 
+            save_path: None,
+        }
+    }
 }
 
 impl Cartridge for MBC2 {
+    #[cfg(not(target_arch = "wasm32"))]
     fn save(&self) {
         match &self.save_path {
             Some(path) => {
@@ -44,6 +64,11 @@ impl Cartridge for MBC2 {
             }
             None => {},
         }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn save(&self) -> *const u8 {
+        self.ram.as_ptr()
     }
 }
 

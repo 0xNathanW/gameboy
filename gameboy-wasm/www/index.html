@@ -14,9 +14,42 @@
         h1 {
             font-family: 'Press Start 2P';
             font-size: 70px;
-            color: #88c070;
+            color: lime;
             -webkit-text-stroke: 2px #332c50;
             text-align: center;
+        }
+
+        h3 { 
+            font-family: "Lucida Console";
+            text-align: center;
+            font-size: 25px;
+            font-weight: bolder;
+            color:white;
+        }
+        
+        label {
+            vertical-align: middle;
+        }
+
+        select {
+            border: 3px solid;
+            border-color: #332c50;
+            border-radius: 7px;
+            background-color:white;
+        }
+
+        canvas {
+            backdrop-filter: blur(10px);
+        }
+        
+        th, td {
+            border: 3px solid;
+            border-color: white;
+            font-family: "Lucida Console";
+            font-size: x-large;
+            color: white;
+            backdrop-filter: blur(5px);
+            padding: 10px;
         }
 
         .main {
@@ -30,68 +63,42 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+
+            backdrop-filter:blur(5px);
         }
 
-        label {
-            vertical-align: middle;
-        }
-
-        select {
-            border: 3px solid;
-            border-color: #332c50;
-            border-radius: 7px;
-            background-color:#e0f8d0;
-        }
-
-        canvas {
-            background-color: #e0f8d0;
-        }
     </style>
   </head>
   <body>
-    
+
     <h1 id="title"> GameBoy.wasm </h1> 
+
+    <h3>A GameBoy emulator built in rust, compiled to wasm</h3>
+
+    <a href="http://github.com/0xNathanW/gameboy" style="color: white;">
+        <h3>github.com/0xNathanW/gameboy</h3> 
+    </a>
+    
+    <br></br>
 
     <div class="main">
         <div class="head"> 
 
-                
             <input
                 type="file"
                 id="rom-input"
+                multiple
                 style="
-                color: #332c50;
+                color: white;
+                
                 font-weight: bolder;
                 font-family: 'Lucida Console', 'Courier New', monospace;
                 font-size: x-large;
                 "
             >
-
-            <label 
-                for="scale"
-                style="
-                color: #332c50;
-                font-family: 'Lucida Console', 'Courier New', monospace;
-                font-size: x-large;
-                "
-                >
-                <b>Scale:</b>
-            </label>
-
-            <select 
-                name="scale" 
-                id="scale"
-                style="
-                color: #332c50;
-                font-family: 'Lucida Console', 'Courier New', monospace;
-                font-size: x-large;
-                "
-            >
-                <option value="2x"><b>2x</b></option>
-                <option value="4x"><b>4x</b></option>
-                <option value="8x"><b>8x</b></option>
-            </select>
-        
+            <!-- <button type="button" id="file-button">
+                Save
+            </button> -->
         </div>
         <br></br>
         
@@ -100,10 +107,39 @@
             height="576" width="640"
             style="border: 4px solid #332c50;"
         >
-    </canvas>
-    
-    </div>
+        </canvas>
+        <br></br>
+        <div id="controls">
+            <table>
+                <th>GameBoy Input</th>
+                <th>Key Input</th>
+                <tr>
+                    <td>Up/Down/Left/Right</td>
+                    <td>Arrow Keys</td>
+                </tr>
+                <tr>
+                    <td>A</td>
+                    <td>Z</td>
+                </tr>
+                <tr>
+                    <td>B</td>
+                    <td>X</td>
+                </tr>
+                <tr>
+                    <td>Start</td>
+                    <td>Enter</td>
+                </tr>
+                <tr>
+                    <td>Select</td>
+                    <td>Space</td>
+                </tr>
+            </table>
+        </div>
 
+    </div>
+    <br></br>
+    <br></br>
+    <br></br>
     <script src="./bootstrap.js"></script>
   
 </body>

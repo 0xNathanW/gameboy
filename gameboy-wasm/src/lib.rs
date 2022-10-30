@@ -1,5 +1,6 @@
 mod utils;
 
+use gameboy_core::cartridge;
 use wasm_bindgen::prelude::*;
 use gameboy_core::cpu::CPU;
 use gameboy_core::keypad::GbKey;
@@ -18,12 +19,12 @@ pub struct Emulator {
 #[wasm_bindgen]
 impl Emulator {
 
-    pub fn new(rom_data: Vec<u8>) -> Self {
-        let cartridge = gameboy_core::cartridge::open_cartridge(rom_data, None);
+    pub fn new(rom_data: Vec<u8>, save_data: Option<Vec<u8>>) -> Self {
+        let cartridge = gameboy_core::cartridge::open_cartridge(rom_data, save_data);
         Self { 
             gb: CPU::new(cartridge, None),
             scale: 4,
-            pixels: vec![0; 160 * 144 * 16 * 4],
+            pixels: vec![0; 160 * 144 * 8 * 8 * 4],
         }
     }
 
@@ -96,9 +97,13 @@ impl Emulator {
         self.pixels.as_ptr()
     }
 
-    pub fn set_scale(&mut self, s: usize) {
-        self.scale = s;
-        self.pixels = vec![0; s.pow(2) * 4];
+    pub fn get_save_data(&self) -> *const u8 {
+        self.gb.mem.save()
     }
+}
+
+#[wasm_bindgen]
+pub fn ram_size(n: usize) -> usize {
+    cartridge::ram_size(n as u8)
 }
 

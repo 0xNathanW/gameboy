@@ -1,6 +1,7 @@
 use std::{path::PathBuf, fs::File, io::Write};
 
 use crate::{bus::MemoryBus, cartridge::Cartridge};
+#[cfg(not(target_arch = "wasm32"))]
 use super::load_save;
 
 pub struct MBC5 {
@@ -15,6 +16,7 @@ pub struct MBC5 {
 }
 
 impl MBC5 {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>) -> Self {
         
         let ram = match save_path {
@@ -31,9 +33,28 @@ impl MBC5 {
             save_path, 
         }
     }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn new(rom: Vec<u8>, ram_size: usize, save_data: Option<Vec<u8>>) -> Self {
+        
+        let ram = match save_data {
+            Some(data) => data,
+            None => vec![0; ram_size],
+        };
+
+        Self { 
+            ram,
+            ram_bank: 0,
+            ram_enable: false,
+            rom,
+            rom_bank: 1,
+            save_path: None, 
+        }
+    }
 }
 
 impl Cartridge for MBC5 {
+    #[cfg(not(target_arch = "wasm32"))]
     fn save(&self) {
         match &self.save_path {
             Some(path) => {
@@ -43,6 +64,11 @@ impl Cartridge for MBC5 {
             }
             None => {},
         }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn save(&self) -> *const u8 {
+        self.ram.as_ptr()
     }
 }
 

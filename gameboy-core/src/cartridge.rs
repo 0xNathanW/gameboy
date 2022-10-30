@@ -15,9 +15,13 @@ const NINTENDO_LOGO: [u8; 48] = [
 ];
 
 pub trait Cartridge: MemoryBus {
-
+    #[cfg(not(target_arch = "wasm32"))]
     fn save(&self);
+    
+    #[cfg(target_arch = "wasm32")]
+    fn save(&self) -> *const u8;
 
+    
     // The Game Boy’s boot procedure first displays the logo and then checks that it matches the dump above. 
     //If it doesn’t, the boot ROM locks itself up.
     fn verify_logo(&self) {
@@ -49,15 +53,12 @@ pub trait Cartridge: MemoryBus {
     }
 }
 
-pub fn open_from_path(p: &Path) -> Box<dyn Cartridge> {
-    let buf = std::fs::read(p).expect("failed to read file"); 
-    open_cartridge(buf, Some(p))
-}
+#[cfg(not(target_arch = "wasm32"))]
+pub fn open_cartridge(path: &Path) -> Box<dyn Cartridge>{
+    let buf = std::fs::read(path).expect("failed to read file"); 
 
-pub fn open_cartridge(buf: Vec<u8>, path: Option<&Path>) -> Box<dyn Cartridge>{
-
-    let save_path = path.map(|p| p.to_path_buf().with_extension("sav"));
-    let rtc_path  = path.map(|p| p.to_path_buf().with_extension("rtc"));
+    let save_path = Some(path.to_path_buf().with_extension("sav"));
+    let rtc_path  = Some(path.to_path_buf().with_extension("rtc"));
 
     // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
     if buf.len() < 0x0150 {
@@ -123,9 +124,76 @@ pub fn open_cartridge(buf: Vec<u8>, path: Option<&Path>) -> Box<dyn Cartridge>{
     cartridge
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Box<dyn Cartridge>{
+
+    // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
+    if buf.len() < 0x0150 {
+        panic!("missing info in cartridge header")
+    }
+    // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
+    let cartridge: Box<dyn Cartridge> = match buf[0x147] {
+        // ROM only.
+        0x00 => Box::new(ROM::new(buf)),
+        // MBC1.
+        0x01 => Box::new(MBC1::new(buf, 0, None)),
+        // MBC1 + RAM. 
+        0x02 => {
+            let ram_size = ram_size(buf[0x149]);
+            Box::new(MBC1::new(buf, ram_size, None))
+        },
+        // MBC1 + RAM + BATTERY.
+        0x03 => {
+            let ram_size = ram_size(buf[0x149]);
+            Box::new(MBC1::new(buf, ram_size, save_data))
+        },
+        // MBC2.
+        0x05 => Box::new(MBC2::new(buf, 512, None)),
+        // MBC2 + BATTERY.
+        0x06 => Box::new(MBC2::new(buf, 512, save_data)),
+        // MBC3 + TIMER + BATTERY.
+        0x0F => Box::new(MBC3::new(buf, 0, save_data, None)),
+        // MBC3 + TIMER + RAM + BATTERY. 
+        0x10 => {
+            let ram_size = ram_size(buf[0x149]);
+            Box::new(MBC3::new(buf, ram_size, save_data, None))
+        },
+        // MBC3.
+        0x11 => Box::new(MBC3::new(buf, 0, None, None)),
+        // MBC3 + RAM.
+        0x12 => {
+            let ram_size = ram_size(buf[0x149]);
+            Box::new(MBC3::new(buf, ram_size, None, None))
+        },
+        // MBC3 + RAM + BATTERY.
+        0x13 => {
+            let ram_size = ram_size(buf[0x149]);
+            Box::new(MBC3::new(buf, ram_size, save_data, None))
+        },
+        // MBC5.
+        0x19 => Box::new(MBC5::new(buf, 0, None)),
+        // MBC5 + RAM.
+        0x1A => {
+            let ram_size = ram_size(buf[0x149]);
+            Box::new(MBC5::new(buf, ram_size, None))
+        },
+        // MBC5 + RAM + BATTERY.
+        0x1B => {
+            let ram_size = ram_size(buf[0x149]);
+            Box::new(MBC5::new(buf, ram_size, save_data))
+        },
+        unknown => panic!("unsupported cartridge type, {:#X}", unknown),
+    };
+    
+    // If verification of logo or checksum fails, program should panic.
+    cartridge.verify_logo();
+    cartridge.verify_checksum();
+    cartridge
+}
+
 // byte 0x0149 indicates size of RAM, if any.
 // https://gbdev.io/pandocs/The_Cartridge_Header.html#0149---ram-size
-fn ram_size(n: u8) -> usize {
+pub fn ram_size(n: u8) -> usize {
     let kb = 1024;
     match n {
         0x0..=0x01 => 0,
@@ -152,14 +220,19 @@ impl MemoryBus for ROM {
     fn write_byte(&mut self, _: u16, _: u8) {}
 }
 
-impl Cartridge for ROM { fn save(&self) {} }
+impl Cartridge for ROM { 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn save(&self) {}
 
+    #[cfg(target_arch = "wasm32")]
+    fn save(&self) -> *const u8 { self.0.as_ptr() }
+}
 
 #[cfg(test)]
 mod test {
 
     use std::path::Path;
-    use crate::cartridge::open_from_path;
+    use crate::cartridge::open_cartridge;
 
     // ROMs with different cartridge architecture.
     // https://b13rg.github.io/Gameboy-MBC-Analysis/#no-mbc
@@ -168,18 +241,18 @@ mod test {
     fn rom_only() {
         let test_path = Path::new("./test_roms/ThisIsATest.gb");
         assert!(test_path.exists());
-        open_from_path(test_path);
+        open_cartridge(test_path);
 
         let dr_mario = Path::new("./test_roms/drMario.gb");
         assert!(dr_mario.exists());
-        open_from_path(dr_mario);
+        open_cartridge(dr_mario);
     }
 
     #[test]
     fn mbc1() {
         let test_path = Path::new("./test_roms/cpu_instrs/individual/01-special.gb");
         assert!(test_path.exists());
-        let cart = open_from_path(test_path);
+        let cart = open_cartridge(test_path);
 
         assert_eq!(cart.read_byte(0x4000), 0xC3);
     }
