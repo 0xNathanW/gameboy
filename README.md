@@ -1,9 +1,17 @@
 # Gameboy
-A Gameboy emulator written in Rust.
+A Gameboy emulator written in Rust, with support for WebAssembly.
 
 Play in the browser -> [0xnathanw.github.io](https://0xnathanw.github.io/)
 
 <img src="assets/pokemon.gif" width="400"> <img src="assets/dr_mario.gif" width="400">
+
+## Repo Structure
+
+gameboy-core => library crate with gb system components.
+
+gameboy      => binary crate.
+
+gameboy-wasm => compiles to WebAssembly for use on the browser.
 
 ## Installation
 Note - Currently only tested on Windows.
