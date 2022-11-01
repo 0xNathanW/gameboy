@@ -91,10 +91,10 @@ impl Registers {
 
     pub fn set_flag(&mut self, flag: Flag, value: bool) {
         match flag {
-            Flag::Z =>  self.f = if value { self.f | ZERO_FLAG } else { self.f & !ZERO_FLAG },
-            Flag::N =>  self.f = if value { self.f | SUBTRACT_FLAG } else { self.f & !SUBTRACT_FLAG },
-            Flag::H =>  self.f = if value { self.f | HALF_CARRY_FLAG } else { self.f & !HALF_CARRY_FLAG },
-            Flag::C =>  self.f = if value { self.f | CARRY_FLAG } else { self.f & !CARRY_FLAG },
+            Flag::Z =>  self.f = if value { self.f | ZERO_FLAG }        else { self.f & !ZERO_FLAG },
+            Flag::N =>  self.f = if value { self.f | SUBTRACT_FLAG }    else { self.f & !SUBTRACT_FLAG },
+            Flag::H =>  self.f = if value { self.f | HALF_CARRY_FLAG }  else { self.f & !HALF_CARRY_FLAG },
+            Flag::C =>  self.f = if value { self.f | CARRY_FLAG }       else { self.f & !CARRY_FLAG },
         }
     }
 }

@@ -1,5 +1,3 @@
-use std::{time, thread};
-
 use super::cartridge::Cartridge;
 use super::bus::MemoryBus;
 use super::memory::Memory;
@@ -30,8 +28,8 @@ pub struct CPU {
     // Provide control over speed of cpu clock.
     step_cycles:        u32,
 
-    #[cfg(not(target_arch = "wasm32"))]
-    step_zero:          time::Instant,
+    #[cfg(not(target_arch = "wasm32"))] 
+    step_zero:          std::time::Instant,
     
     step_flip:          bool,
 }
@@ -49,7 +47,7 @@ impl CPU {
             step_cycles:          0,
 
             #[cfg(not(target_arch = "wasm32"))]
-            step_zero:            time::Instant::now(),
+            step_zero:            std::time::Instant::now(),
             
             step_flip:            false,
         }
@@ -83,6 +81,7 @@ impl CPU {
 
 impl CPU {
 
+    // Performs a singular instruction or interrupt event.
     pub fn tick(&mut self) -> u32 {
         self.update_ime();
 
@@ -105,12 +104,12 @@ impl CPU {
         
         if self.step_cycles > STEP_CYCLES {
             self.step_cycles -= STEP_CYCLES;
-            let now = time::Instant::now();
+            let now = std::time::Instant::now();
             
             let d = now.duration_since(self.step_zero);
             let sleep_time = (STEP_TIME.saturating_sub(d.as_millis() as u32)) as u64;
-            thread::sleep(time::Duration::from_millis(sleep_time));
-            self.step_zero = self.step_zero.checked_add(time::Duration::from_millis(STEP_TIME as u64)).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(sleep_time));
+            self.step_zero = self.step_zero.checked_add(std::time::Duration::from_millis(STEP_TIME as u64)).unwrap();
 
             if now.checked_duration_since(self.step_zero).is_some() {
                 self.step_zero = now;
@@ -181,5 +180,5 @@ impl CPU {
         let flipped = self.step_flip;
         if flipped { self.step_flip = false; }
         flipped
-    }   
+    }
 }
