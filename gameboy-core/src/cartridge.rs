@@ -196,7 +196,8 @@ pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Box<dyn Cartr
 pub fn ram_size(n: u8) -> usize {
     let kb = 1024;
     match n {
-        0x0..=0x01 => 0,
+        0x00 => 0,
+        0x01 => 2   * kb,
         0x02 => 8   * kb,
         0x03 => 32  * kb,
         0x04 => 128 * kb,
