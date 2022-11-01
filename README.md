@@ -1,6 +1,8 @@
 # Gameboy
 A Gameboy emulator written in Rust.
 
+Play on browser -> [0xnathanw.github.io](0xnathanw.github.io)
+
 <img src="assets/pokemon.gif" width="400"> <img src="assets/dr_mario.gif" width="400">
 
 ## Installation
