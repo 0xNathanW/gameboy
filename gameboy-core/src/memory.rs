@@ -52,7 +52,7 @@ impl Memory {
             keypad:     KeyPad::new(intf.clone()),
             serial:     Serial::new(intf.clone(), callback),
             inte:       0,
-            intf:       intf.clone(),
+            intf,
         };
         memory.initialise();
         memory

@@ -28,7 +28,7 @@ impl RealTimeClock {
     fn new(rtc_path: Option<PathBuf>) -> Option<RealTimeClock> {
         match rtc_path {
             Some(path) => {
-                let zero = match std::fs::read(path.clone()) {
+                let zero = match std::fs::read(path) {
                     Ok(f) => {
                         let mut b = [0_u8; 8];
                         b.copy_from_slice(&f);
@@ -183,7 +183,7 @@ impl Cartridge for MBC3 {
                     ).unwrap();
                 }
                 // Write ram.
-                file.write_all(&*self.ram).unwrap();
+                file.write_all(&self.ram).unwrap();
             },
         }
     }

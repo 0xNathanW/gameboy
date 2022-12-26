@@ -155,8 +155,8 @@ impl GPU {
                 } else if self.dots <= (80 + 172) {
                     if self.stat.mode != Mode::VRAMRead { self.switch_mode(Mode::VRAMRead) }
                 
-                } else {
-                    if self.stat.mode != Mode::HBlank { self.switch_mode(Mode::HBlank) }
+                } else if self.stat.mode != Mode::HBlank{
+                    self.switch_mode(Mode::HBlank)
                 }
             }
         } 
@@ -269,7 +269,7 @@ impl GPU {
             for x in 0..8 {
                 let pix_x = sprite.x + x;
                 // Skip out of bounds pixels.
-                if pix_x < 0 || pix_x >= 160 { continue; }
+                if !(0..160).contains(&pix_x) { continue; }
 
                 let x_bit = if sprite.x_flip { x } else { 7 - x };
                 

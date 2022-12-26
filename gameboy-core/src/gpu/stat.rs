@@ -13,7 +13,7 @@ use crate::bit::Bit;
     > 0 - HBlank, > 1 - VBlank, > 2 - Searching OAM, > 3 Transfer data to LCD
 */
 
-#[derive(PartialEq, Debug, Default)]
+#[derive(PartialEq, Eq, Debug, Default)]
 pub enum Mode {
     #[default]
     HBlank,

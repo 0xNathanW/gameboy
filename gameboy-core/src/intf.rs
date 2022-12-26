@@ -8,7 +8,7 @@ pub enum InterruptSource {
     Keypad  = 0b00010000,
 }
 // Info on interrupts - http://www.codeslinger.co.uk/pages/projects/gameboy/interupts.html
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Intf (u8);
 
 impl Intf {
@@ -18,8 +18,6 @@ impl Intf {
         self.0 |= src as u8;
     }
 }
-
-impl Default for Intf { fn default() -> Self { Intf(0) } }
 
 impl MemoryBus for Intf {
 

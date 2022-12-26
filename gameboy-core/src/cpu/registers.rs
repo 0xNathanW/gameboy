@@ -138,11 +138,11 @@ mod test {
         
         reg.a = 0b00000001;
         reg.f = 0b00000010;
-        assert_eq!(reg.get_af(), 0b00000001_00000010);
+        assert_eq!(reg.get_af(), 0b0000_0001_0000_0010);
 
         reg.b = 0b00110001;
         reg.c = 0b11000111;
-        assert_eq!(reg.get_bc(), 0b00110001_11000111);
+        assert_eq!(reg.get_bc(), 0b0011_0001_1100_0111);
 
         reg.set_af(15786);
         assert_eq!(reg.a, 0b00111101);

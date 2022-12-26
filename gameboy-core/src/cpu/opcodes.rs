@@ -196,7 +196,7 @@ impl CPU {
 
     // Execute next opcode, returns number of cycles.
     pub fn execute(&mut self, opcode: u8) -> u32 {
-        let cycles = match opcode {
+        match opcode {
             // http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
             
             // 8-bit loads 
@@ -1033,7 +1033,6 @@ impl CPU {
                 }
             }
             unknown => panic!("unsuppored opcode: {:#2X}", unknown),
-        };
-        cycles
+        }
     }
 }

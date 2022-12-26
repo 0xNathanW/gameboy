@@ -9,7 +9,7 @@ mod opcodes;
 use registers::Registers;
 
 const STEP_TIME: u32 = 16;
-const STEP_CYCLES: u32 = (STEP_TIME as f64 / (1_000_f64 / 4_194_304_f64 as f64) ) as u32;
+const STEP_CYCLES: u32 = (STEP_TIME as f64 / (1_000_f64 / 4_194_304_f64) ) as u32;
 
 pub struct CPU {
     regs:               Registers,

@@ -1,3 +1,5 @@
+#![allow(clippy::upper_case_acronyms)]
+
 pub mod cpu;
 pub mod cartridge;
 pub mod keypad;

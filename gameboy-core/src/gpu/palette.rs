@@ -18,7 +18,7 @@ impl Palette {
     pub fn new() -> Self { Self::default() }
 
     pub fn get_shade(&self, idx: usize) -> u32 {
-        match (self.data >> 2 * idx) & 3 {
+        match self.data >> (2 * idx) & 3 {
             0b00 => 0xe0f8d0,     // Lightest
             0b01 => 0x88c070,
             0b10 => 0x346856, 
