@@ -80,7 +80,7 @@ impl MemoryBus for MBC2 {
             0x0000 ..= 0x3FFF => self.rom[address as usize],
             // 4000–7FFF — ROM Bank $01-0F [read-only]
             0x4000 ..= 0x7FFF => {
-                let offset = 0x4000 * self.rom_bank as usize;
+                let offset = 0x4000 * self.rom_bank;
                 self.rom[offset + (address as usize - 0x4000)]
             },
             // A000–A1FF — Built-in RAM

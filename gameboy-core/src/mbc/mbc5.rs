@@ -96,7 +96,7 @@ impl MemoryBus for MBC5 {
         match address {
             0x0000 ..= 0x1FFF => self.ram_enable = b & 0x0F == 0xA,
             0x2000 ..= 0x2FFF => self.rom_bank = (self.rom_bank & 0x100) | b as usize,
-            0x3000 ..= 0x3FFF => self.rom_bank = (self.rom_bank & 0xFF)  | (((b as u8) as usize) << 8), 
+            0x3000 ..= 0x3FFF => self.rom_bank = (self.rom_bank & 0xFF)  | ((b as usize) << 8), 
             0x4000 ..= 0x5FFF => self.ram_bank = (b & 0xF) as usize,
             0xA000 ..= 0xBFFF => {
                 if self.ram_enable {

@@ -227,10 +227,10 @@ impl GPU {
                 7 - (bg_x % 8)
             };
 
-            let colour_num = (
-                if tile_data[0] & (1 << x_bit) > 0 { 1 } else { 0 } |
-                if tile_data[1] & (1 << x_bit) > 0 { 2 } else { 0 } 
-            );
+            let colour_num = 
+                usize::from(tile_data[0] & (1 << x_bit) > 0) |
+                if tile_data[1] & (1 << x_bit) > 0 { 2 } else { 0 };
+                
             self.bg_priority[x as usize] = if colour_num == 0 {
                 Priority::Colour0
             } else {
@@ -273,10 +273,10 @@ impl GPU {
 
                 let x_bit = if sprite.x_flip { x } else { 7 - x };
                 
-                let colour_idx = (
-                    if tile_data[0] & (1 << x_bit) > 0 { 1 } else { 0 } |
-                    if tile_data[1] & (1 << x_bit) > 0 { 2 } else { 0 } 
-                );
+                let colour_idx = 
+                    usize::from(tile_data[0] & (1 << x_bit) > 0) |
+                    if tile_data[1] & (1 << x_bit) > 0 { 2 } else { 0 };
+                    
                 // Skip transparent pixels.
                 if colour_idx == 0 { continue; }
 

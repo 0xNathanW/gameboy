@@ -6,8 +6,8 @@ impl CPU {
 
     // ADD A, n - add n (+ carry) to A.
     fn alu_add(&mut self, n: u8, carry: bool) {
-        let a: u8 = self.regs.a;
-        let c: u8 = if self.regs.get_flag(C) && carry {1} else {0};
+        let a = self.regs.a;
+        let c = u8::from(self.regs.get_flag(C) && carry);
         let res = a.wrapping_add(n).wrapping_add(c);
         self.regs.set_flag(C, (a as u16) + (n as u16) + (c as u16) > 0xFF);     // Set if carry from bit 7.        
         self.regs.set_flag(H, (a&0xF) + (n&0xF) + c > 0xF);                     // Set if carry from bit 3. 
@@ -18,8 +18,8 @@ impl CPU {
 
     // SUB n - subtract n (+ carry) from A.
     fn alu_sub(&mut self, n: u8, carry: bool) {
-        let a: u8 = self.regs.a;
-        let c: u8 = if self.regs.get_flag(C) && carry {1} else {0};
+        let a = self.regs.a;
+        let c = u8::from(self.regs.get_flag(C) && carry);
         let res = a.wrapping_sub(n).wrapping_sub(c);
         self.regs.set_flag(H, (a & 0xF) < (n & 0xF) + c);               // Set if no borrow from bit 4.
         self.regs.set_flag(C, (a as u16) < (n as u16) + (c as u16));    // Set if no borrow.

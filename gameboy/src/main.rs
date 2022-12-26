@@ -128,7 +128,9 @@ fn main() {
     }
 
     // Drop the audio stream if it exists.
-    if audio_stream.is_some() { drop(audio_stream.unwrap()) }
+    if let Some(stream) = audio_stream {
+        drop(stream)
+    }
 
     // Save.
     cpu.mem.save();
