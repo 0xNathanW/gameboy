@@ -1,3 +1,4 @@
+use thiserror::Error;
 use std::path::Path;
 
 use super::bus::MemoryBus;
@@ -5,6 +6,22 @@ use super::mbc::mbc1::MBC1;
 use super::mbc::mbc2::MBC2;
 use super::mbc::mbc3::MBC3;
 use super::mbc::mbc5::MBC5;
+
+#[derive(Error, Debug)]
+pub enum CartError {
+    #[error("nintendo logo in cartridge is incorrect")]
+    IncorrectLogo,
+    #[error("header checksum incorrect")]
+    IncorrectChecksum,
+    #[error("missing info in cartridge header")]
+    MissingInfo,
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[error("unsupported cartridge type: {0}")]
+    UnsupportedCartType(u8),
+}
+
+type Result<T> = std::result::Result<T, CartError>;
 
 // Nintendo logo bitmap, cartridge address range $0104-$0133 must match.
 // https://gbdev.io/pandocs/The_Cartridge_Header.html#0104-0133---nintendo-logo
@@ -23,23 +40,26 @@ pub trait Cartridge: MemoryBus {
 
     
     // The Game Boy’s boot procedure first displays the logo and then checks that it matches the dump above. 
-    //If it doesn’t, the boot ROM locks itself up.
-    fn verify_logo(&self) {
+    // If it doesn’t, the boot ROM locks itself up.
+    fn verify_logo(&self) -> Result<()> {
         for i in 0..48 {
             if self.read_byte(0x0104+i) != NINTENDO_LOGO[i as usize] {
-                panic!("nintendo logo in cartridge is not correct.");
+                return Err(CartError::IncorrectLogo);
             }
         }
+        Ok(())
     }
 
     // Byte 0x014D contains an 8-bit checksum computed from the cartridge header bytes $0134—$014C.
-    fn verify_checksum(&self) {
+    fn verify_checksum(&self) -> Result<()> {
         let mut checksum: u8 = 0;
         for i in 0x0134..0x014D {
             checksum = checksum.wrapping_sub(self.read_byte(i)).wrapping_sub(1);
         }
         if checksum != self.read_byte(0x014D) {
-            panic!("header checksum incorrect");
+            Err(CartError::IncorrectChecksum)
+        } else {
+            Ok(())
         }
     }
 
@@ -54,15 +74,15 @@ pub trait Cartridge: MemoryBus {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn open_cartridge(path: &Path) -> Box<dyn Cartridge>{
-    let buf = std::fs::read(path).expect("failed to read file"); 
+pub fn open_cartridge(path: &Path) -> Result<Box<dyn Cartridge>> {
+    let buf = std::fs::read(path)?; 
 
     let save_path = Some(path.to_path_buf().with_extension("sav"));
     let rtc_path  = Some(path.to_path_buf().with_extension("rtc"));
 
     // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
     if buf.len() < 0x0150 {
-        panic!("missing info in cartridge header")
+        return Err(CartError::MissingInfo);
     }
     // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
     let cartridge: Box<dyn Cartridge> = match buf[0x147] {
@@ -70,7 +90,7 @@ pub fn open_cartridge(path: &Path) -> Box<dyn Cartridge>{
         0x00 => Box::new(ROM::new(buf)),
         // MBC1.
         0x01 => Box::new(MBC1::new(buf, 0, None)),
-        // MBC1 + RAM. 
+        // MBC1 + RAM.
         0x02 => {
             let ram_size = ram_size(buf[0x149]);
             Box::new(MBC1::new(buf, ram_size, None))
@@ -115,13 +135,13 @@ pub fn open_cartridge(path: &Path) -> Box<dyn Cartridge>{
             let ram_size = ram_size(buf[0x149]);
             Box::new(MBC5::new(buf, ram_size, save_path))
         },
-        unknown => panic!("unsupported cartridge type, {:#X}", unknown),
+        unknown => return Err(CartError::UnsupportedCartType(unknown)),
     };
     
     // If verification of logo or checksum fails, program should panic.
-    cartridge.verify_logo();
-    cartridge.verify_checksum();
-    cartridge
+    cartridge.verify_logo()?;
+    cartridge.verify_checksum()?;
+    Ok(cartridge)
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -186,8 +206,8 @@ pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Box<dyn Cartr
     };
     
     // If verification of logo or checksum fails, program should panic.
-    cartridge.verify_logo();
-    cartridge.verify_checksum();
+    cartridge.verify_logo().unwrap();
+    cartridge.verify_checksum().unwrap();
     cartridge
 }
 
@@ -242,18 +262,18 @@ mod test {
     fn rom_only() {
         let test_path = Path::new("./test_roms/ThisIsATest.gb");
         assert!(test_path.exists());
-        open_cartridge(test_path);
+        open_cartridge(test_path).unwrap();
 
         let dr_mario = Path::new("./test_roms/drMario.gb");
         assert!(dr_mario.exists());
-        open_cartridge(dr_mario);
+        open_cartridge(dr_mario).unwrap();
     }
 
     #[test]
     fn mbc1() {
         let test_path = Path::new("./test_roms/cpu_instrs/individual/01-special.gb");
         assert!(test_path.exists());
-        let cart = open_cartridge(test_path);
+        let cart = open_cartridge(test_path).unwrap();
 
         assert_eq!(cart.read_byte(0x4000), 0xC3);
     }

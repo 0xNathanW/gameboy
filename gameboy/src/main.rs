@@ -2,13 +2,16 @@ use cpal::OutputCallbackInfo;
 use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
 use minifb::{Window, WindowOptions, Scale, Key};
 use clap::Parser;
+use anyhow::{Result, ensure, Context, Ok};
 use std::{path::Path, ffi::OsStr};
 
-use gameboy_core::{SCREEN_HEIGHT, SCREEN_WIDTH};
-use gameboy_core::cpu::CPU;
-use gameboy_core::keypad::GbKey;
-use gameboy_core::cartridge;
-use gameboy_core::apu::APU;
+use gameboy_core::{
+    {SCREEN_HEIGHT, SCREEN_WIDTH},
+    cpu::CPU,
+    keypad::GbKey,
+    cartridge,
+    apu::APU,
+};
 
 #[cfg(test)]
 mod test;
@@ -44,20 +47,16 @@ enum DisplayScale {
     X32,
 }
 
-fn main() {
+fn main() -> Result<()> {
 
     let args = Args::parse();
     let rom_name = args.path;
 
     let rom_path = Path::new(&rom_name);
-    if !rom_path.exists() { 
-        panic!("path provided does not exist"); 
-    }
-    if rom_path.extension() != Some(OsStr::new("gb")) {
-        panic!("file provided does not have the extention '.gb'"); 
-    }
+    ensure!(rom_path.exists(), "file path provided does not exist");
+    ensure!(rom_path.extension() == Some(OsStr::new("gb")), "file provided does not have the extention '.gb'");
 
-    let cartridge = cartridge::open_cartridge(rom_path);
+    let cartridge = cartridge::open_cartridge(rom_path).context("failed loading cartridge")?;
 
     let opts = WindowOptions {
         scale: match args.scale {
@@ -66,7 +65,7 @@ fn main() {
             DisplayScale::X4  => Scale::X4,
             DisplayScale::X8  => Scale::X8,
             DisplayScale::X16 => Scale::X16,
-            DisplayScale::X32 => Scale::X32            
+            DisplayScale::X32 => Scale::X32,
         },
         ..Default::default()
     };
@@ -76,7 +75,7 @@ fn main() {
         SCREEN_WIDTH,
         SCREEN_HEIGHT,
         opts,
-    ).unwrap_or_else(|e| { panic!("error setting up display: {}", e) });
+    ).context("failed to create window")?;
     
     let callback: Option<Box<dyn Fn(u8)>> = if args.serial {
         Some(Box::new(|b: u8| { print!("{}", b as char); }))
@@ -87,7 +86,7 @@ fn main() {
     let mut cpu = CPU::new(cartridge, callback);
 
     let audio_stream = if args.audio {
-        initialise_audio(&mut cpu)
+        initialise_audio(&mut cpu).context("failed to initialise audio")?
     } else { 
         None
     };
@@ -113,7 +112,7 @@ fn main() {
                 cpu.mem.gpu.pixels.as_ref(), 
                 SCREEN_WIDTH, 
                 SCREEN_HEIGHT,
-            ).unwrap();
+            ).context("failed to update display")?;
         }
         
         for (input, key) in keys.iter() {
@@ -134,13 +133,14 @@ fn main() {
 
     // Save.
     cpu.mem.save();
+    Ok(())
 }
 
-fn initialise_audio(cpu: &mut CPU) -> Option<cpal::Stream> {
+fn initialise_audio(cpu: &mut CPU) -> Result<Option<cpal::Stream>> {
 
-    let device = cpal::default_host().default_output_device().expect("failed to find output device.");
-    let config = device.default_output_config().unwrap();
-    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+    let device = cpal::default_host().default_output_device().context("failed to find audio output device.")?;
+    let config = device.default_output_config()?;
+    let err_fn = |err| eprintln!("an error occurred on audio stream: {}", err);
     
     let apu = APU::power_up(config.sample_rate().0);
     let stream_buffer = apu.buffer.clone();
@@ -149,7 +149,7 @@ fn initialise_audio(cpu: &mut CPU) -> Option<cpal::Stream> {
     let stream = device.build_output_stream(
         &config.config(), 
         move |out_buf: &mut [f32], _: &OutputCallbackInfo | {
-            let mut in_buf = stream_buffer.lock().unwrap();
+            let mut in_buf = stream_buffer.lock().expect("failed to lock audio buffer");
             let length = std::cmp::min(out_buf.len() / 2, in_buf.len());
             
             for (idx, (data_l, data_r)) in in_buf.drain(..length).enumerate() {
@@ -158,7 +158,7 @@ fn initialise_audio(cpu: &mut CPU) -> Option<cpal::Stream> {
             }
         },
         err_fn,
-    ).unwrap();
-    stream.play().unwrap();
-    Some(stream)
+    ).context("failed to build audio stream")?;
+    stream.play().context("failed to play audio stream")?;
+    Ok(Some(stream))
 }

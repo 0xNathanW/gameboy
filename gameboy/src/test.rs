@@ -10,7 +10,7 @@ fn cpu_instructions() {
     assert!(test_path.exists());
 
     let callback = |b: u8| { print!("{}", b as char); };
-    let cartridge = cartridge::open_cartridge(test_path);
+    let cartridge = cartridge::open_cartridge(test_path).unwrap();
 
     let mut cpu = CPU::new(
         cartridge,
