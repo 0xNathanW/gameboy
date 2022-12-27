@@ -88,7 +88,7 @@ impl MemoryBus for MBC5 {
                     0
                 }
             },
-            _ => panic!("bad address mbc5 (read): {:#2X}", address),
+            _ => 0,
         }
     }
     
@@ -104,7 +104,7 @@ impl MemoryBus for MBC5 {
                     self.ram[offset + (address as usize - 0xA000)] = b;
                 }
             },
-            _ => panic!("bad address mbc5 (write): {:#2X}", address),
+            _ => {},
         }
     }
 }

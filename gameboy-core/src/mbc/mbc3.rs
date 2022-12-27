@@ -98,7 +98,7 @@ impl MemoryBus for RealTimeClock {
             0x0A => self.hours,
             0x0B => self.dl,
             0x0C => self.dh,
-            _ => panic!("bad address rtc (read): {:#2X}", address),
+            _ => panic!("invalid address rtc (read): {:#2X}", address),
         }
     }
     
@@ -109,7 +109,7 @@ impl MemoryBus for RealTimeClock {
             0x0A => self.hours = b,
             0x0B => self.dl = b,
             0x0C => self.dh = b,
-            _ => panic!("bad address rtc (write): {:#2X}", address),
+            _ => panic!("invalid address rtc (write): {:#2X}", address),
         }
     }
 }
@@ -221,7 +221,7 @@ impl MemoryBus for MBC3 {
                     0
                 }
             },
-            _ => panic!("bad address mbc3 (read): {:#2X}", address),
+            _ => 0,
         }
     }
     
@@ -260,7 +260,7 @@ impl MemoryBus for MBC3 {
                     }
                 }
             },
-            _ => panic!("bad address mbc3 (write): {:#2X}", address),
+            _ => {},
         }
     }
 }

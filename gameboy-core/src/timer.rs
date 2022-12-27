@@ -53,11 +53,11 @@ impl MemoryBus for Timer {
                     16   => b.set(1),
                     64   => b.set(2),
                     256  => b.set(3),
-                    _ => panic!("timer period not supported (read) {:4X}", self.mod_clock.period),
+                    _ => unreachable!(),
                 }
                 b
             },
-            _ => panic!("invalid memory read for timer at {:#2X}", address),
+            _ => unreachable!(),
         }
     }
 
@@ -73,10 +73,10 @@ impl MemoryBus for Timer {
                     1 => 16,
                     2 => 64,
                     3 => 256,
-                    _ => panic!("timer period not supported (write): {:4X}", b & 0b11), 
+                    _ => unreachable!(), 
                 }
             }
-            _ => panic!("invalid memory write for timer at {:#2X}", address),
+            _ => unreachable!(),
         };
     }
 }

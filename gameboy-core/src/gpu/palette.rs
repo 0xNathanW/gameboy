@@ -23,7 +23,7 @@ impl Palette {
             0b01 => 0x88c070,
             0b10 => 0x346856, 
             0b11 => 0x081820,      // Darkest
-            _    => panic!("invalid colour"),
+            _    => unreachable!(),
          }
     }
 

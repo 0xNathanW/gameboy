@@ -7,7 +7,6 @@ use super::intf::{Intf, InterruptSource};
 // Serial is for gameboy multiplayer functionality.
 // Since the emulator has no multiplayer it is used for testing puposes instead.
 // This is because test roms often send results to the serial memory address.
-
 pub type SerialCallback = Option<Box<dyn Fn(u8)>>;
 
 pub struct Serial {
@@ -37,7 +36,7 @@ impl MemoryBus for Serial {
         match address {
             0xFF01 => self.data,
             0xFF02 => self.control,
-            _ => panic!("invalid memory read for serial at {:#2X}", address),
+            _ => unreachable!(),
         }
     }
 
@@ -57,7 +56,7 @@ impl MemoryBus for Serial {
                     }
                 }
             },
-            _ => panic!("invalid memory write for serial at {:#2X}", address),
+            _ => unreachable!(),
         }
     }
 }

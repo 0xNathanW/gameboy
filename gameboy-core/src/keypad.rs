@@ -80,7 +80,7 @@ impl MemoryBus for KeyPad {
 
     fn read_byte(&self, address: u16) -> u8 {
         assert_eq!(address, 0xFF00);
-        if self.select.bit(4)       { self.reg[0] }         
+        if self.select.bit(4)       { self.reg[0] }
         else if self.select.bit(5)  { self.reg[1] }
         else                        { assert_eq!(self.select, 0); 0 }
     }
