@@ -1,18 +1,20 @@
 import { Emulator, ram_size } from "gameboy-wasm";
 import { memory } from "gameboy-wasm/gameboy_wasm_bg";
 
+const rom = require("./pocket.gb");
+const WIDTH = 160;
+const HEIGHT = 144;
+var scale = 4;
+var timeout_id = null;
+
 // Add a drag and drop mabye -- DataTransfer object.
 const canvas = document.getElementById("display");
 const ctx = canvas.getContext("2d");
-var timeout_id = null;
 
 ctx.font = 'bolder 25px Lucida Console';
 ctx.textAlign = "center";
 ctx.fillText("Choose a file\n to load as a ROM...", canvas.width/2, canvas.height/2);
 
-const WIDTH = 160;
-const HEIGHT = 144;
-var scale = 4;
 
 const saveable_cartridges = [0x03, 0x06, 0x09, 0x0D, 0x0F, 0x10, 0x13, 0x1B, 0x1E, 0x22]
 var saveable = false;
