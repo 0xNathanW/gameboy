@@ -1,15 +1,16 @@
+use canvas::Canvas;
 #[allow(unused)]
 
 use yew::prelude::*;
 
-mod gameboy;
-use gameboy::Emulator;
+mod canvas;
+mod emulator;
 
 fn main() {
     yew::Renderer::<App>::new().render();
 }
 
-struct App; 
+struct App;
 
 impl Component for App {
     type Message = ();
@@ -28,7 +29,7 @@ impl Component for App {
             <>
             <h1>{"GameBoy.WASM"}</h1>
             <h3>{"A GameBoy emulator written in Rust and WASM"}</h3>
-            <Emulator />
+            <Canvas />
             </>
         }
     }
