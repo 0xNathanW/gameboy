@@ -1,5 +1,5 @@
+#![allow(unused)]
 use canvas::Canvas;
-#[allow(unused)]
 
 use yew::prelude::*;
 

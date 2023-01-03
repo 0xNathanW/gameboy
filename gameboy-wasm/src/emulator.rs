@@ -1,12 +1,16 @@
+use gloo::net::http::Request;
 use gameboy_core::cpu::CPU;
+use gameboy_core::cartridge::open_cartridge;
+
+pub const DEMO_DATA: &'static [u8] = include_bytes!("../pocket.gb");
+
 pub struct Emulator(pub CPU);
 
 impl Emulator {
 
     pub fn new() -> Self {
-        let demo = std::fs::read("./pocket.gb").unwrap();
-        let cart = open_cartridge(demo, None);
-        Self(CPU::new(cart, None))
+        let demo = open_cartridge(DEMO_DATA.to_vec(), None);
+        Self(CPU::new(demo, None))
     }
 
     pub fn tick(&mut self) {
@@ -22,25 +26,4 @@ impl Emulator {
         self.0.mem.gpu.check_updated()
     }
 
-    pub fn pixel_buffer(&self) -> Vec<u8> {
-        let row_pix = 160 * 4 * 4;
-        let mut buf = vec![0; row_pix * 144 * 4 * 4];
-        for (i, raw) in self.0.mem.gpu.pixels.iter().enumerate() {
-
-            let col = i % 160;
-            let row = i / 160;
-            let mut rgba = (raw << 8).to_be_bytes();
-            rgba[3] = 0xFF; // Opacity.
-
-            for (j, c) in rgba.iter().enumerate() {
-                for n in 0..4 {
-                    for m in 0..4 {
-                        buf[
-                            ((col * 4 * 4) + (4 * n)) +     // x
-                            (((row * 4) + m ) * row_pix)    // y
-                            + j                             // offset
-                        ] = *c;
-                    }}}}   
-        buf
-    }
 }

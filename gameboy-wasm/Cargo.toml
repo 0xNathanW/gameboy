@@ -8,6 +8,7 @@ yew = { version = "0.20.0", features = ["csr"] }
 wasm-bindgen = "0.2.83"
 ybc = "0.2"
 gloo = "0.8.0"
+futures = "0.3.25"
 gameboy-core = { version = "0.1.0", path = "../gameboy-core" }
 
 [dependencies.web-sys]
@@ -16,4 +17,6 @@ features = [
     "CanvasRenderingContext2d",
     "HtmlCanvasElement",
     "ImageData",
+    "Document",
+    "Window",
 ]
