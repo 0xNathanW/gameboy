@@ -1,8 +1,9 @@
 use gloo::net::http::Request;
 use gameboy_core::cpu::CPU;
 use gameboy_core::cartridge::open_cartridge;
+use gameboy_core::keypad::GbKey;
 
-pub const DEMO_DATA: &'static [u8] = include_bytes!("../pocket.gb");
+pub const DEMO_DATA: &'static [u8] = include_bytes!("../drMario.gb");
 
 pub struct Emulator(pub CPU);
 
@@ -26,4 +27,11 @@ impl Emulator {
         self.0.mem.gpu.check_updated()
     }
 
+    pub fn key_down(&mut self, key: GbKey) {
+        self.0.mem.keypad.key_press(key);
+    }
+
+    pub fn key_up(&mut self, key: GbKey) {
+        self.0.mem.keypad.key_release(key);
+    }
 }

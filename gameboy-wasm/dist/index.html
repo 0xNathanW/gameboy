@@ -1,11 +1,14 @@
 <!DOCTYPE html><html><head>
         <meta charset="utf-8">
         <title>Gameboy.WASM</title>
-        <link href="https://fonts.googleapis.com/css?family=Press Start 2P" rel="stylesheet">
+        <script type="module">import init from '/gameboy-wasm-9ed44d1bb09d955c.js';init('/gameboy-wasm-9ed44d1bb09d955c_bg.wasm');</script>
+        <link rel="stylesheet" href="/styles-e319afb5ff3712f0.css">
+        <link rel="stylesheet" href="./styles.css">
     
-<link rel="preload" href="/gameboy-wasm-ee25c96c684977f6_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/gameboy-wasm-ee25c96c684977f6.js"></head>
-<body><script type="module">import init from '/gameboy-wasm-ee25c96c684977f6.js';init('/gameboy-wasm-ee25c96c684977f6_bg.wasm');</script><script>(function () {
+<link rel="preload" href="/gameboy-wasm-9ed44d1bb09d955c_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/gameboy-wasm-9ed44d1bb09d955c.js"></head>
+
+<body><script>(function () {
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var url = protocol + '//' + window.location.host + '/_trunk/ws';
     var poll_interval = 5000;

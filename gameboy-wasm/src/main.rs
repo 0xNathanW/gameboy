@@ -1,7 +1,6 @@
 #![allow(unused)]
-use canvas::Canvas;
-
 use yew::prelude::*;
+use canvas::Canvas;
 
 mod canvas;
 mod emulator;
@@ -27,10 +26,37 @@ impl Component for App {
     fn view(&self, ctx: &yew::Context<Self>) -> Html {
         html! {
             <>
-            <h1>{"GameBoy.WASM"}</h1>
-            <h3>{"A GameBoy emulator written in Rust and WASM"}</h3>
-            <Canvas />
+                <div class="upper">
+                    <h1>{ "GameBoy.WASM" }</h1>
+                    <div class="canvas">
+                        <Canvas />
+                        <div class="button-row">
+                            <FileInput />
+                            <button>{"Pallette"}</button>
+                            <button>{"Scale"}</button>
+                        </div>
+                    </div>        
+                </div>
             </>
         }
+    }
+}
+
+#[function_component]
+fn FileInput() -> Html {
+    html! {
+        <>
+            <label for="file-input" class="file-input-label">
+                <i class="fas fa-cloud"></i>
+                <span>{"Upload ROM"}</span>
+            </label>
+            <input
+                id="file-input"
+                type="file"
+                multiple=false
+                accept=".gb"
+                onchange={ctx.link().to_parent()}
+            />
+        </>
     }
 }

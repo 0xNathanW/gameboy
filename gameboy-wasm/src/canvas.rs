@@ -1,31 +1,43 @@
 use std::{rc::Rc, cell::RefCell};
 use yew::prelude::*;
-use gloo::timers::callback::Interval;
-use gloo::console::log;
+use gloo::{
+    timers::callback::Interval, 
+    utils::document, 
+    events::EventListener,
+    console::log,
+};
 use web_sys::{
     HtmlCanvasElement,
     ImageData, 
     Node, 
     CanvasRenderingContext2d,
-    window,
-    console,
 };
+use futures::channel::mpsc;
 use wasm_bindgen::JsCast;
-use gameboy_core::cartridge::open_cartridge;
+use gameboy_core::keypad::GbKey;
 use super::emulator::Emulator;
 
 const FRAME_TIME: u32 = 16; // Approx 60 FPS.
 const SCALE: f64 = 4.0;
 
 pub struct Canvas {
-    emulator:   Emulator,
-    canvas:     NodeRef,
-    ctx:        Option<CanvasRenderingContext2d>,
-    interval:   Interval,
+    emulator:           Emulator,
+    canvas:             NodeRef,
+    ctx:                Option<CanvasRenderingContext2d>,
+    interval:           Interval,
+    key_up_listen:      EventListener,
+    key_down_listen:    EventListener,
 }
 
+
 pub enum Msg {
-    Tick, 
+    Tick,
+    KeyDown(GbKey),
+    KeyUp(GbKey),
+}
+
+#[derive(Clone, PartialEq, Properties)]
+pub struct CanvasProps {
 }
 
 impl Component for Canvas {
@@ -33,6 +45,8 @@ impl Component for Canvas {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
+        
+        // Update frame every 16ms.
         let interval = {
             let link = ctx.link().clone();
             Interval::new(FRAME_TIME, move || {
@@ -40,11 +54,63 @@ impl Component for Canvas {
             })
         };
 
+        // Callbacks for key events.
+        let on_key_down = {
+            let link = ctx.link().clone();
+            Callback::from(move |e: KeyboardEvent| {
+                match e.key().as_str() {
+                    "ArrowUp"       => link.send_message(Msg::KeyDown(GbKey::Up)),
+                    "ArrowDown"     => link.send_message(Msg::KeyDown(GbKey::Down)),
+                    "ArrowLeft"     => link.send_message(Msg::KeyDown(GbKey::Left)),
+                    "ArrowRight"    => link.send_message(Msg::KeyDown(GbKey::Right)),
+                    "z"             => link.send_message(Msg::KeyDown(GbKey::A)),
+                    "x"             => link.send_message(Msg::KeyDown(GbKey::B)),
+                    "Enter"         => link.send_message(Msg::KeyDown(GbKey::Start)),
+                    "Shift"         => link.send_message(Msg::KeyDown(GbKey::Select)),
+                    _ => return,
+                };
+            })
+        };
+
+        let on_key_up = {
+            let link = ctx.link().clone();
+            Callback::from(move |e: KeyboardEvent| {
+                match e.key().as_str() {
+                    "ArrowUp"       => link.send_message(Msg::KeyUp(GbKey::Up)),
+                    "ArrowDown"     => link.send_message(Msg::KeyUp(GbKey::Down)),
+                    "ArrowLeft"     => link.send_message(Msg::KeyUp(GbKey::Left)),
+                    "ArrowRight"    => link.send_message(Msg::KeyUp(GbKey::Right)),
+                    "z"             => link.send_message(Msg::KeyUp(GbKey::A)),
+                    "x"             => link.send_message(Msg::KeyUp(GbKey::B)),
+                    "Enter"         => link.send_message(Msg::KeyUp(GbKey::Start)),
+                    "Shift"         => link.send_message(Msg::KeyUp(GbKey::Select)),
+                    _ => return,
+                };
+            })
+        };
+
+        // Attach key listeners to document.
+        let doc = document();
+        let key_down = EventListener::new(&doc, "keydown", move |event| {
+            let key_event = event.clone().dyn_into::<KeyboardEvent>().unwrap();
+            if !key_event.repeat() {
+                on_key_down.emit(key_event);
+            }    
+        });
+        let key_up = EventListener::new(&doc, "keyup", move |event| {
+            let key_event = event.clone().dyn_into::<KeyboardEvent>().unwrap();
+            if !key_event.repeat() {
+                on_key_up.emit(key_event);
+            }    
+        });
+
         Self {
             emulator: Emulator::new(),
             canvas: NodeRef::default(),
             ctx: None,
             interval,
+            key_up_listen: key_up,
+            key_down_listen: key_down,
         }
     }
 
@@ -57,15 +123,21 @@ impl Component for Canvas {
                 }
                 true
             },
+            Msg::KeyDown(key) => {
+                self.emulator.key_down(key);
+                false
+            },
+            Msg::KeyUp(key) => {
+                self.emulator.key_up(key);
+                false
+            },
         }
-    
     }
 
     fn view(&self, ctx: &Context<Self>) -> yew::Html {
         html! {
             <div>
             <canvas 
-                id="emulator_canvas"
                 width={(160 * SCALE as usize).to_string()}
                 height={(144 * SCALE as usize).to_string()}
                 ref={self.canvas.clone()}>
@@ -101,6 +173,5 @@ impl Canvas {
         ctx.put_image_data(&img_data, 0.0, 0.0).unwrap();
         ctx.draw_image_with_html_canvas_element(&ctx.canvas().unwrap(), 0_f64, 0_f64).unwrap();
     }
-
 }
 
