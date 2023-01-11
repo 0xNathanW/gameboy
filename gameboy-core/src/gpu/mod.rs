@@ -364,7 +364,50 @@ impl GPU {
             rgba[3] = 0xFF;
             self.pixels[start..start+4].copy_from_slice(&rgba);
         }
+    }
+
+    pub fn set_colours(&mut self, colours: [u32; 4]) {
+        let old_colours = self.bg_palette.colours();
+        let old_ly = self.ly;
         
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            for y in 0..SCREEN_HEIGHT {
+                self.ly = y as u8;
+                for x in 0..SCREEN_WIDTH as usize {
+                    let idx = (y * 166 + x) as usize;
+                    match self.pixels[idx] {
+                        c if c == old_colours[0] => self.set_pixel(x, colours[0]),
+                        c if c == old_colours[1] => self.set_pixel(x, colours[1]),
+                        c if c == old_colours[2] => self.set_pixel(x, colours[2]),
+                        c if c == old_colours[3] => self.set_pixel(x, colours[3]),
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            for y in 0..SCREEN_HEIGHT {
+                self.ly = y as u8;
+                for x in 0..SCREEN_WIDTH {
+                    let rgba = self.get_pixel(x, y);
+                    let c = u32::from_be_bytes([0, rgba[0], rgba[1], rgba[2]]);
+                    match c {
+                        c if c == old_colours[0] => self.set_pixel(x, colours[0]),
+                        c if c == old_colours[1] => self.set_pixel(x, colours[1]),
+                        c if c == old_colours[2] => self.set_pixel(x, colours[2]),
+                        c if c == old_colours[3] => self.set_pixel(x, colours[3]),
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        }
+
+        self.ly = old_ly;
+        self.bg_palette.set_colours(colours);
+        self.sprite_palette_0.set_colours(colours);
+        self.sprite_palette_1.set_colours(colours);
     }
 
     #[cfg(target_arch = "wasm32")]

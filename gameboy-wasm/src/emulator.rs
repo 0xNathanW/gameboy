@@ -1,17 +1,23 @@
 use gloo::net::http::Request;
 use gameboy_core::cpu::CPU;
-use gameboy_core::cartridge::open_cartridge;
+use gameboy_core::cartridge::{open_cartridge, Cartridge};
 use gameboy_core::keypad::GbKey;
 
 pub const DEMO_DATA: &'static [u8] = include_bytes!("../drMario.gb");
 
 pub struct Emulator(pub CPU);
 
+impl Default for Emulator {
+    fn default() -> Self {
+        let demo = open_cartridge(DEMO_DATA.to_vec(), None).unwrap();
+        Self(CPU::new(demo, None))
+    }
+}
+
 impl Emulator {
 
-    pub fn new() -> Self {
-        let demo = open_cartridge(DEMO_DATA.to_vec(), None);
-        Self(CPU::new(demo, None))
+    pub fn new(rom_data: Box<dyn Cartridge>) -> Self {
+        Self(CPU::new(rom_data, None))
     }
 
     pub fn tick(&mut self) {
@@ -33,5 +39,9 @@ impl Emulator {
 
     pub fn key_up(&mut self, key: GbKey) {
         self.0.mem.keypad.key_release(key);
+    }
+
+    pub fn change_palette(&mut self, palette: [u32; 4]) {
+        self.0.mem.gpu.set_colours(palette);
     }
 }

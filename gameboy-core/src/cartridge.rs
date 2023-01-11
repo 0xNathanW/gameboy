@@ -145,11 +145,11 @@ pub fn open_cartridge(path: &Path) -> Result<Box<dyn Cartridge>> {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Box<dyn Cartridge>{
+pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Result<Box<dyn Cartridge>>{
 
     // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
     if buf.len() < 0x0150 {
-        panic!("missing info in cartridge header")
+        return Err(CartError::MissingInfo);
     }
     // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
     let cartridge: Box<dyn Cartridge> = match buf[0x147] {
@@ -202,13 +202,13 @@ pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Box<dyn Cartr
             let ram_size = ram_size(buf[0x149]);
             Box::new(MBC5::new(buf, ram_size, save_data))
         },
-        unknown => panic!("unsupported cartridge type, {:#X}", unknown),
+        unknown => return Err(CartError::UnsupportedCartType(unknown)),
     };
     
     // If verification of logo or checksum fails, program should panic.
-    cartridge.verify_logo().unwrap();
-    cartridge.verify_checksum().unwrap();
-    cartridge
+    cartridge.verify_logo()?;
+    cartridge.verify_checksum()?;
+    Ok(cartridge)
 }
 
 // byte 0x0149 indicates size of RAM, if any.

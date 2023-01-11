@@ -19,4 +19,6 @@ features = [
     "Document",
     "Window",
     "KeyboardEvent",
+    "FileList",
+    "HtmlCollection",
 ]
