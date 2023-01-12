@@ -1,28 +1,22 @@
-#![allow(unused)]
-use std::{rc::Rc, cell::RefCell};
 use yew::prelude::*;
+use yew::props;
 use gloo::{
     timers::callback::Interval, 
     utils::document, 
     events::EventListener,
-    console::log,
     dialogs::alert,
-    file::{File, Blob},
+    file::File,
 };
-
 use web_sys::{
     HtmlCanvasElement,
     HtmlInputElement,
-    FileList,
     ImageData,
-    Node, 
     CanvasRenderingContext2d,
 };
-use futures::channel::mpsc;
 use wasm_bindgen::JsCast;
 use gameboy_core::{keypad::GbKey, cartridge::{open_cartridge, Cartridge}};
 use emulator::Emulator;
-use panel::Panel;
+use panel::{Panel, InfoProps};
 
 const FRAME_TIME: u32 = 16; // Approx 60 FPS.
 const SCALE: f64 = 4.0;
@@ -48,14 +42,24 @@ fn main() {
 
 pub struct App {
     emulator:           Emulator,
+    is_cgb:             bool,
+
     rom_name:           AttrValue,
+    rom_size:           usize,
+    cart_type:          AttrValue,
+    saveable:           bool,
+
     pallette_idx:       usize,
+    
     canvas:             NodeRef,
     ctx:                Option<CanvasRenderingContext2d>,
+    // Dropping interval will stop it from ticking.
     interval:           Interval,
     paused:             bool,
-    key_up_listen:      EventListener,
-    key_down_listen:    EventListener,
+    // Dropping these listeners will remove them from the document.
+    _key_up_listen:      EventListener,
+    _key_down_listen:    EventListener,
+
     file_reader:        Option<gloo::file::callbacks::FileReader>,
 }
 
@@ -135,14 +139,18 @@ impl Component for App {
 
         Self {
             emulator: Emulator::default(),
+            is_cgb: false,
             rom_name: "Demo".into(),
+            rom_size: 0,
+            saveable: false,
+            cart_type: "ROM only".into(),
             canvas: NodeRef::default(),
             pallette_idx: 1,
             ctx: None,
             interval,
             paused: false,
-            key_up_listen: key_up,
-            key_down_listen: key_down,
+            _key_up_listen: key_up,
+            _key_down_listen: key_down,
             file_reader: None,
         }
     }
@@ -179,21 +187,31 @@ impl Component for App {
             Msg::FileUpload(file) => {
                 let link = ctx.link().clone();
                 self.file_reader = Some(gloo::file::callbacks::read_as_bytes(&file, move |bytes| {
+
                     match bytes {
-                        Ok(bytes) => match open_cartridge(bytes, None) {
-                            Ok(cartridge) => {
+                        Ok(bytes) => {
+                            match open_cartridge(bytes, None) {
+                            Ok(cartridge) => {                
                                 link.send_message(Msg::NewROM(cartridge));
                             },
+                            
                             Err(e) => alert(&format!("Error loading ROM: {}", e)),
+                            }
                         },
+                        
                         Err(e) => alert(&format!("Failed to read bytes: {}", e)),
                     }
                 }));
+                self.paused = false;
                 true
             },
 
             Msg::NewROM(cartridge) => {
                 self.rom_name = cartridge.title().into();
+                self.rom_size = cartridge.len();
+                self.is_cgb = cartridge.is_cgb();
+                self.cart_type = cartridge.cartridge_type().into();
+                self.saveable = cartridge.is_saveable();
                 self.emulator = Emulator::new(cartridge);
                 true
             },
@@ -212,6 +230,17 @@ impl Component for App {
     }
 
     fn view(&self, ctx: &Context<Self>) -> yew::Html {
+
+        let info_props = props!(
+            InfoProps {
+                is_cgb:     self.is_cgb, 
+                rom_name:   self.rom_name.clone(),
+                rom_size:   self.rom_size,
+                cart_type:  self.cart_type.clone(),
+                saveable:   self.saveable,
+                pallette:   AttrValue::from(PALETTES[self.pallette_idx].0),
+            }
+        );
 
         html! {
             <>
@@ -270,7 +299,7 @@ impl Component for App {
             </div>
             <br/>
             <br/>
-            <Panel/>
+            <Panel ..info_props/>
             </>            
         }
     }

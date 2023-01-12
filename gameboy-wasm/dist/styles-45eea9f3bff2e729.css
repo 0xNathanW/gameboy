@@ -2,6 +2,7 @@
 @import url('https://css.gg/software-upload.css');
 @import url('https://css.gg/play-pause.css');
 @import url('https://css.gg/color-picker.css');
+@import url('https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css');
 
 :root {
     --blue: rgb(2, 48, 71);
@@ -45,6 +46,11 @@ body {
 
 input {
     display: none;
+}
+
+a:link, a:visited, a:active, a:hover {
+    color: lime;
+    text-decoration: none;
 }
 
 .upper {
@@ -139,20 +145,23 @@ canvas {
     align-items: center;
     justify-content: center;
     row-gap: 10px;
+    height: 450px;
 }
 
 .panel-inner {
     display: flex;
-    width: 75%;
+    width: 640px;
+    height: 100%;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    /* align-items: center;
+    justify-content: center; */
 }
 
 .panel-button-row {
     display: flex;
     flex-direction: row;
     width: 100%;
+    position: static;
 }
 
 /* Style like tabs with bottom border that slides when tab is active */
@@ -163,7 +172,7 @@ canvas {
     line-height: 24px;
     cursor: pointer;
     flex-grow: 1;
-    font-family: 'Lucinda Console', Monaco, monospace;
+    font-family: 'Press Start 2P', Monaco, monospace;
     font-size: 16px;
     font-weight: bolder;
     text-decoration: none;
@@ -172,7 +181,7 @@ canvas {
     justify-content: center;
     background-color: var(--blue);
     border: none;
-    color: white; 
+    color: white;
 }
 
 .panel-buttons:hover {
@@ -181,4 +190,49 @@ canvas {
 
 .panel-input:checked + .panel-buttons {
     border-bottom: 3px solid white;
+}
+
+.panel-content {
+    width: 100%;
+    justify-content: left;
+    font-size: 18px;
+    padding: 25px;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: auto auto;
+}
+
+.item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.start-select {
+    pointer-events: none;
+    border-radius: 5px;
+    margin-left: 7px;
+    font-size: 16px;
+    font-family: 'Lucinda Console', Monaco, monospace;
+    font-weight: bolder;
+}
+
+#arrows {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#about {
+    line-height: 24px;
+    font-size: 20px;
+}
+
+#info {
+    font-size: 20px;
+    line-height: 30px;
 }

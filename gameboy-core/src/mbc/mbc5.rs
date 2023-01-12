@@ -54,6 +54,9 @@ impl MBC5 {
 }
 
 impl Cartridge for MBC5 {
+
+    fn len(&self) -> usize { self.rom.len() }
+
     #[cfg(not(target_arch = "wasm32"))]
     fn save(&self) {
         match &self.save_path {

@@ -2,6 +2,7 @@ use gloo::net::http::Request;
 use gameboy_core::cpu::CPU;
 use gameboy_core::cartridge::{open_cartridge, Cartridge};
 use gameboy_core::keypad::GbKey;
+use gameboy_core::bus::MemoryBus;
 
 pub const DEMO_DATA: &'static [u8] = include_bytes!("../drMario.gb");
 
@@ -45,3 +46,4 @@ impl Emulator {
         self.0.mem.gpu.set_colours(palette);
     }
 }
+

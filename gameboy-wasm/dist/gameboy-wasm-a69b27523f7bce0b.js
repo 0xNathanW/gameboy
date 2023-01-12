@@ -765,16 +765,16 @@ function getImports() {
         const ret = wasm.memory;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper4431 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 366, __wbg_adapter_18);
+    imports.wbg.__wbindgen_closure_wrapper4714 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 443, __wbg_adapter_18);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper4612 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 372, __wbg_adapter_21);
+    imports.wbg.__wbindgen_closure_wrapper4895 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 449, __wbg_adapter_21);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper4668 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 385, __wbg_adapter_24);
+    imports.wbg.__wbindgen_closure_wrapper4951 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 462, __wbg_adapter_24);
         return addHeapObject(ret);
     };
 
@@ -813,7 +813,7 @@ function initSync(module) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('gameboy-wasm-dbec670e513075e2_bg.wasm', import.meta.url);
+        input = new URL('gameboy-wasm-a69b27523f7bce0b_bg.wasm', import.meta.url);
     }
     const imports = getImports();
 
