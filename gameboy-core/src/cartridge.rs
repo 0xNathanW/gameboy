@@ -31,6 +31,8 @@ const NINTENDO_LOGO: [u8; 48] = [
     0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
 ];
 
+const SAVEABLE : [u8; 11] = [0x03, 0x06, 0x09, 0x0D, 0x0F, 0x10, 0x13, 0x1B, 0x1E, 0x22, 0xFF];
+
 pub trait Cartridge: MemoryBus {
     #[cfg(not(target_arch = "wasm32"))]
     fn save(&self);
@@ -38,6 +40,7 @@ pub trait Cartridge: MemoryBus {
     #[cfg(target_arch = "wasm32")]
     fn save(&self) -> *const u8;
 
+    fn len(&self) -> usize;
     
     // The Game Boy’s boot procedure first displays the logo and then checks that it matches the dump above. 
     // If it doesn’t, the boot ROM locks itself up.
@@ -70,6 +73,52 @@ pub trait Cartridge: MemoryBus {
             title.push(self.read_byte(address) as char);
         }
         title
+    }
+
+    // Retrieve type of cartridge.
+    fn cartridge_type(&self) -> String {
+        match self.read_byte(0x147) {
+            0x00 => "ROM ONLY",
+            0x01 => "MBC1",
+            0x02 => "MBC1+RAM",
+            0x03 => "MBC1+RAM+BATTERY",
+            0x05 => "MBC2",
+            0x06 => "MBC2+BATTERY",
+            0x08 => "ROM+RAM",
+            0x09 => "ROM+RAM+BATTERY",
+            0x0B => "MMM01",
+            0x0C => "MMM01+RAM",
+            0x0D => "MMM01+RAM+BATTERY",
+            0x0F => "MBC3+TIMER+BATTERY",
+            0x10 => "MBC3+TIMER+RAM+BATTERY",
+            0x11 => "MBC3",
+            0x12 => "MBC3+RAM",
+            0x13 => "MBC3+RAM+BATTERY",
+            0x19 => "MBC5",
+            0x1A => "MBC5+RAM",
+            0x1B => "MBC5+RAM+BATTERY",
+            0x1C => "MBC5+RUMBLE",
+            0x1D => "MBC5+RUMBLE+RAM",
+            0x1E => "MBC5+RUMBLE+RAM+BATTERY",
+            0x20 => "MBC6",
+            0x22 => "MBC7+SENSOR+RUMBLE+RAM+BATTERY",
+            0xFC => "POCKET CAMERA",
+            0xFD => "BANDAI TAMA5",
+            0xFE => "HuC3",
+            0xFF => "HuC1+RAM+BATTERY",
+            _ => "UNKNOWN",
+        }.to_string()
+    }
+
+    fn is_cgb(&self) -> bool {
+        match self.read_byte(0x143) {
+            0x80 | 0xC0 => true,
+            _ => false,
+        }
+    }
+
+    fn is_saveable(&self) -> bool {
+        if SAVEABLE.contains(&self.read_byte(0x147)) { true } else { false }
     }
 }
 
@@ -145,11 +194,11 @@ pub fn open_cartridge(path: &Path) -> Result<Box<dyn Cartridge>> {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Box<dyn Cartridge>{
+pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Result<Box<dyn Cartridge>>{
 
     // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
     if buf.len() < 0x0150 {
-        panic!("missing info in cartridge header")
+        return Err(CartError::MissingInfo);
     }
     // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
     let cartridge: Box<dyn Cartridge> = match buf[0x147] {
@@ -202,13 +251,13 @@ pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Box<dyn Cartr
             let ram_size = ram_size(buf[0x149]);
             Box::new(MBC5::new(buf, ram_size, save_data))
         },
-        unknown => panic!("unsupported cartridge type, {:#X}", unknown),
+        unknown => return Err(CartError::UnsupportedCartType(unknown)),
     };
     
     // If verification of logo or checksum fails, program should panic.
-    cartridge.verify_logo().unwrap();
-    cartridge.verify_checksum().unwrap();
-    cartridge
+    cartridge.verify_logo()?;
+    cartridge.verify_checksum()?;
+    Ok(cartridge)
 }
 
 // byte 0x0149 indicates size of RAM, if any.
@@ -242,6 +291,9 @@ impl MemoryBus for ROM {
 }
 
 impl Cartridge for ROM { 
+
+    fn len(&self) -> usize { self.0.len() }
+
     #[cfg(not(target_arch = "wasm32"))]
     fn save(&self) {}
 

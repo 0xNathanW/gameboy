@@ -52,7 +52,12 @@ pub struct GPU {
     oam: [u8; OAM_SIZE],
     
     // Raw pixel data, each pixel one of 3 grey shades.
+    #[cfg(not(target_arch = "wasm32"))]
     pub pixels: [u32; SCREEN_HEIGHT * SCREEN_WIDTH],
+    // Web requires 4 bytes per pixel in rgba format.
+    #[cfg(target_arch = "wasm32")]
+    pub pixels: [u8; SCREEN_HEIGHT * SCREEN_WIDTH * 4],
+
     updated: bool,
 
     lcdc: LCDC,
@@ -112,7 +117,11 @@ impl GPU {
             bg_priority: [Priority::None; SCREEN_WIDTH],
             dots: 0,
             intf,
+
+            #[cfg(not(target_arch = "wasm32"))]
             pixels: [u32::MAX; SCREEN_WIDTH * SCREEN_HEIGHT],
+            #[cfg(target_arch = "wasm32")]
+            pixels: [u8::MAX; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
             updated: false,
         }
     }
@@ -329,7 +338,12 @@ impl GPU {
 
     fn clear_screen(&mut self) {
         for pix in self.pixels.iter_mut() {
-            *pix = u32::MAX;
+            #[cfg(not(target_arch = "wasm32"))] {
+                *pix = u32::MAX;
+            }
+            #[cfg(target_arch = "wasm32")] {
+                *pix = u8::MAX;
+            }
         }
         for prio in self.bg_priority.iter_mut() {
             *prio = Priority::None;
@@ -338,8 +352,70 @@ impl GPU {
     }
 
     fn set_pixel(&mut self, x: usize, colour: u32) {
-        let p: u32 = 0xFF_00_00_00 | colour;
-        self.pixels[(self.ly as usize) * SCREEN_WIDTH + x] = p;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let p: u32 = 0xFF_00_00_00 | colour;
+            self.pixels[(self.ly as usize) * SCREEN_WIDTH + x] = p;
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let start = ((self.ly as usize) * (SCREEN_WIDTH) + x) *  4;
+            let mut rgba = (colour << 8).to_be_bytes();
+            rgba[3] = 0xFF;
+            self.pixels[start..start+4].copy_from_slice(&rgba);
+        }
+    }
+
+    pub fn set_colours(&mut self, colours: [u32; 4]) {
+        let old_colours = self.bg_palette.colours();
+        let old_ly = self.ly;
+        
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            for y in 0..SCREEN_HEIGHT {
+                self.ly = y as u8;
+                for x in 0..SCREEN_WIDTH as usize {
+                    let idx = (y * 166 + x) as usize;
+                    match self.pixels[idx] {
+                        c if c == old_colours[0] => self.set_pixel(x, colours[0]),
+                        c if c == old_colours[1] => self.set_pixel(x, colours[1]),
+                        c if c == old_colours[2] => self.set_pixel(x, colours[2]),
+                        c if c == old_colours[3] => self.set_pixel(x, colours[3]),
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            for y in 0..SCREEN_HEIGHT {
+                self.ly = y as u8;
+                for x in 0..SCREEN_WIDTH {
+                    let rgba = self.get_pixel(x, y);
+                    let c = u32::from_be_bytes([0, rgba[0], rgba[1], rgba[2]]);
+                    match c {
+                        c if c == old_colours[0] => self.set_pixel(x, colours[0]),
+                        c if c == old_colours[1] => self.set_pixel(x, colours[1]),
+                        c if c == old_colours[2] => self.set_pixel(x, colours[2]),
+                        c if c == old_colours[3] => self.set_pixel(x, colours[3]),
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        }
+
+        self.ly = old_ly;
+        self.bg_palette.set_colours(colours);
+        self.sprite_palette_0.set_colours(colours);
+        self.sprite_palette_1.set_colours(colours);
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn get_pixel(&self, x: usize, y: usize) -> [u8; 4] {
+        let start = (y * SCREEN_WIDTH + x) * 4;
+        let mut rgba = [0; 4];
+        rgba.copy_from_slice(&self.pixels[start..start+4]);
+        rgba
     }
 
     pub fn check_updated(&mut self) -> bool {
