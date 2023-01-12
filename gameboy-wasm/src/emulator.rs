@@ -4,7 +4,7 @@ use gameboy_core::cartridge::{open_cartridge, Cartridge};
 use gameboy_core::keypad::GbKey;
 use gameboy_core::bus::MemoryBus;
 
-pub const DEMO_DATA: &'static [u8] = include_bytes!("../drMario.gb");
+pub const DEMO_DATA: &'static [u8] = include_bytes!("../pocket.gb");
 
 pub struct Emulator(pub CPU);
 
