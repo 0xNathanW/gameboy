@@ -72,7 +72,7 @@ pub trait Cartridge: MemoryBus {
         for address in 0x134..= 0x143 {
             title.push(self.read_byte(address) as char);
         }
-        title
+        title.trim().to_string()
     }
 
     // Retrieve type of cartridge.
