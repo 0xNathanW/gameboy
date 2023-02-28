@@ -8,4 +8,4 @@ minifb = "0.23"
 cpal = "0.14.0"
 clap = { version = "4.0.13", features = ["derive"] }
 anyhow = "1.0.68"
-gameboy-core = { version = "0.1.0", path = "../gameboy-core", features = ["audio"] }
+core = { version = "0.1.0", path = "../core", features = ["audio"] }

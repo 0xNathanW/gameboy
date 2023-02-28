@@ -5,7 +5,7 @@ use clap::Parser;
 use anyhow::{Result, ensure, Context, Ok};
 use std::{path::Path, ffi::OsStr};
 
-use gameboy_core::{
+use core::{
     {SCREEN_HEIGHT, SCREEN_WIDTH},
     cpu::CPU,
     keypad::GbKey,

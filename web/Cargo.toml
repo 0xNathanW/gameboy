@@ -1,5 +1,5 @@
 [package]
-name = "gameboy-wasm"
+name = "web"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,7 +8,7 @@ yew = { version = "0.20", features = ["csr"] }
 wasm-bindgen = "0.2.83"
 gloo = "0.8.0"
 futures = "0.3.25"
-gameboy-core = { version = "0.1.0", path = "../gameboy-core" }
+core = { version = "0.1.0", path = "../core" }
 
 [dependencies.web-sys]
 version = "0.3.60"

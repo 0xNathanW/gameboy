@@ -7,11 +7,11 @@ Play in the browser -> [0xnathanw.github.io](https://0xnathanw.github.io/)
 
 ## Repo Structure
 
-gameboy-core => library crate with gb system components.
+core => library crate with gb system components.
 
 gameboy      => binary crate.
 
-gameboy-wasm => compiles to WebAssembly for use on the browser.
+web => compiles to WebAssembly for use on the browser.
 
 ## Installation
 Note - Currently only tested on Windows.

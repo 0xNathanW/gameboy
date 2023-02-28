@@ -14,7 +14,7 @@ use web_sys::{
     CanvasRenderingContext2d,
 };
 use wasm_bindgen::JsCast;
-use gameboy_core::{keypad::GbKey, cartridge::{open_cartridge, Cartridge}};
+use core::{keypad::GbKey, cartridge::{open_cartridge, Cartridge}};
 use emulator::Emulator;
 use panel::{Panel, InfoProps};
 
