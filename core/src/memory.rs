@@ -136,7 +136,7 @@ impl Memory {
         self.timer.update(cycles);
         self.gpu.update(cycles);
         #[cfg(feature = "audio")]
-        self.apu.as_mut().map_or((), |apu| apu.next(cycles));
+        let _ = self.apu.as_mut().map_or((), |apu| apu.next(cycles));
     } 
 
     // Set inital values, rest should be randomised but we can also set to 0.
