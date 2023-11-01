@@ -1,7 +1,7 @@
 # Gameboy
 A Gameboy emulator written in Rust, with support for WebAssembly.
 
-Play in the browser -> [0xnathanw.github.io](https://0xnathanw.github.io/)
+Play in the browser -> [0xnathanw.github.io/gameboy/](https://0xnathanw.github.io/gameboy/)
 
 <img src="assets/pokemon.gif" width="400"> <img src="assets/dr_mario.gif" width="400">
 
