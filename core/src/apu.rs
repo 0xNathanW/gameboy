@@ -782,7 +782,7 @@ impl APU {
 
     fn play(&mut self, l: &[f32], r: &[f32]) {
         assert_eq!(l.len(), r.len());
-        let mut buffer = self.buffer.lock().unwrap();
+        let mut buffer = self.buffer.lock().expect("audio thread crashed");
         for (l, r) in l.iter().zip(r) {
             // Do not fill the buffer with more than 1 second of data
             // This speeds up the resync after the turning on and off the speed limiter
