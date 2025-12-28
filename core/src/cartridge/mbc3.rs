@@ -5,10 +5,9 @@ use std::{
     time::SystemTime,
 };
 
-use crate::{bus::MemoryBus, cartridge::Cartridge};
+use super::{MemoryBus, Cartridge, Result};
 #[cfg(not(target_arch = "wasm32"))]
 use super::load_save;
-
 /*
 (max 2MByte ROM and/or 32KByte RAM and Timer)
 Beside for the ability to access up to 2MB ROM (18 banks), and 32KB RAM (4 banks), the MBC3 also includes a built-in Real Time Clock (RTC). 
@@ -171,29 +170,27 @@ impl Cartridge for MBC3 {
     fn len(&self) -> usize { self.rom.len() }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn save(&self) {
+    fn save(&self) -> Result<()> {
         match self.save_path.clone() {
-            None => {},
+            None => Ok(()),
             Some(path) => {
-                let mut file = match File::create(path) {
-                    Ok(f) => f,
-                    Err(_) => return,
-                };
+                let mut file = File::create(path)?;
                 // Write real time clock.
                 if self.rtc.is_some() {
                     file.write_all(
                         &self.rtc.as_ref().unwrap().zero.to_be_bytes()
-                    ).unwrap();
+                    )?;
                 }
                 // Write ram.
-                file.write_all(&self.ram).unwrap();
+                file.write_all(&self.ram)?;
+                Ok(())
             },
         }
     }
 
     #[cfg(target_arch = "wasm32")]
-    fn save(&self) -> *const u8 {
-        self.ram.as_ptr()
+    fn save(&self) -> Result<*const u8> {
+        Ok(self.ram.as_ptr())
     }
 }
 

@@ -132,7 +132,7 @@ fn main() -> Result<()> {
     }
 
     // Save.
-    cpu.mem.save();
+    cpu.mem.save()?;
     Ok(())
 }
 

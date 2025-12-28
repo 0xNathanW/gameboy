@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::SCREEN_WIDTH;
+use crate::cartridge::CartError;
 use super::cartridge::Cartridge;
 use super::serial::SerialCallback;
 use super::cartridge;
@@ -185,8 +186,8 @@ impl Memory {
 
     // Save the cartridge RAM.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn save(&self) { self.cartridge.save(); }
+    pub fn save(&self) -> Result<(), CartError> { self.cartridge.save() }
     
     #[cfg(target_arch = "wasm32")]
-    pub fn save(&self) -> *const u8 { self.cartridge.save() }
+    pub fn save(&self) -> Result<*const u8, CartError> { self.cartridge.save() }
 }

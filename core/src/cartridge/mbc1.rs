@@ -1,7 +1,6 @@
 use std::{path::PathBuf, io::Write, fs::File, vec};
 
-use crate::cartridge::Cartridge;
-use super::super::bus::MemoryBus;
+use super::{MemoryBus, Cartridge, Result};
 #[cfg(not(target_arch = "wasm32"))]
 use super::load_save;
 
@@ -75,20 +74,20 @@ impl Cartridge for MBC1 {
     fn len(&self) -> usize { self.rom.len() }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn save(&self) {
+    fn save(&self) -> Result<()> {
         match &self.save_path {
             Some(path) => {
-                File::create(path).and_then(
-                    |mut f| f.write_all(&self.ram)
-                ).unwrap()
+                let mut file = File::create(path)?;
+                file.write_all(&self.ram)?;
+                Ok(())
             }
-            None => {},
+            None => Ok(()),
         }
     }
 
     #[cfg(target_arch = "wasm32")]
-    fn save(&self) -> *const u8 {
-        self.ram.as_ptr()
+    fn save(&self) -> Result<*const u8> {
+        Ok(self.ram.as_ptr())
     }
 }
 
