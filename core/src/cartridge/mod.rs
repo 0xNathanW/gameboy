@@ -1,11 +1,31 @@
 use thiserror::Error;
 use std::path::Path;
 
-use super::bus::MemoryBus;
-use super::mbc::mbc1::MBC1;
-use super::mbc::mbc2::MBC2;
-use super::mbc::mbc3::MBC3;
-use super::mbc::mbc5::MBC5;
+use crate::bus::MemoryBus;
+
+mod rom;
+mod mbc1;
+mod mbc2;
+mod mbc3;
+mod mbc5;
+
+// TODO: move
+#[cfg(not(target_arch = "wasm32"))]
+fn load_save(save_path: &std::path::PathBuf, ram_size: usize) -> Vec<u8> {
+    use std::io::{Read, ErrorKind};
+    
+    match std::fs::File::open(save_path) {
+        Ok(mut file) => {
+            let mut ram = vec![];
+            file.read_to_end(&mut ram).unwrap();
+            ram
+        },
+        Err(ref e) if e.kind() == ErrorKind::NotFound => {
+            vec![0; ram_size]
+        },
+        Err(..) => panic!("could not read file"),
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum CartError {
@@ -136,53 +156,53 @@ pub fn open_cartridge(path: &Path) -> Result<Box<dyn Cartridge>> {
     // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
     let cartridge: Box<dyn Cartridge> = match buf[0x147] {
         // ROM only.
-        0x00 => Box::new(ROM::new(buf)),
+        0x00 => Box::new(rom::ROM::new(buf)),
         // MBC1.
-        0x01 => Box::new(MBC1::new(buf, 0, None)),
+        0x01 => Box::new(mbc1::MBC1::new(buf, 0, None)),
         // MBC1 + RAM.
         0x02 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC1::new(buf, ram_size, None))
+            Box::new(mbc1::MBC1::new(buf, ram_size, None))
         },
         // MBC1 + RAM + BATTERY.
         0x03 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC1::new(buf, ram_size, save_path))
+            Box::new(mbc1::MBC1::new(buf, ram_size, save_path))
         },
         // MBC2.
-        0x05 => Box::new(MBC2::new(buf, 512, None)),
+        0x05 => Box::new(mbc2::MBC2::new(buf, 512, None)),
         // MBC2 + BATTERY.
-        0x06 => Box::new(MBC2::new(buf, 512, save_path)),
+        0x06 => Box::new(mbc2::MBC2::new(buf, 512, save_path)),
         // MBC3 + TIMER + BATTERY.
-        0x0F => Box::new(MBC3::new(buf, 0, save_path, rtc_path)),
+        0x0F => Box::new(mbc3::MBC3::new(buf, 0, save_path, rtc_path)),
         // MBC3 + TIMER + RAM + BATTERY. 
         0x10 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC3::new(buf, ram_size, save_path, rtc_path))
+            Box::new(mbc3::MBC3::new(buf, ram_size, save_path, rtc_path))
         },
         // MBC3.
-        0x11 => Box::new(MBC3::new(buf, 0, None, None)),
+        0x11 => Box::new(mbc3::MBC3::new(buf, 0, None, None)),
         // MBC3 + RAM.
         0x12 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC3::new(buf, ram_size, None, None))
+            Box::new(mbc3::MBC3::new(buf, ram_size, None, None))
         },
         // MBC3 + RAM + BATTERY.
         0x13 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC3::new(buf, ram_size, save_path, None))
+            Box::new(mbc3::MBC3::new(buf, ram_size, save_path, None))
         },
         // MBC5.
-        0x19 => Box::new(MBC5::new(buf, 0, None)),
+        0x19 => Box::new(mbc5::MBC5::new(buf, 0, None)),
         // MBC5 + RAM.
         0x1A => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC5::new(buf, ram_size, None))
+            Box::new(mbc5::MBC5::new(buf, ram_size, None))
         },
         // MBC5 + RAM + BATTERY.
         0x1B => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC5::new(buf, ram_size, save_path))
+            Box::new(mbc5::MBC5::new(buf, ram_size, save_path))
         },
         unknown => return Err(CartError::UnsupportedCartType(unknown)),
     };
@@ -203,53 +223,53 @@ pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Result<Box<dy
     // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
     let cartridge: Box<dyn Cartridge> = match buf[0x147] {
         // ROM only.
-        0x00 => Box::new(ROM::new(buf)),
-        // MBC1.
-        0x01 => Box::new(MBC1::new(buf, 0, None)),
+        0x00 => Box::new(rom::ROM::new(buf)),
+        // MBC1 .
+        0x01 => Box::new(mbc1::MBC1::new(buf, 0, None)),
         // MBC1 + RAM. 
         0x02 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC1::new(buf, ram_size, None))
+            Box::new(mbc1::MBC1::new(buf, ram_size, None))
         },
         // MBC1 + RAM + BATTERY.
         0x03 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC1::new(buf, ram_size, save_data))
+            Box::new(mbc1::MBC1::new(buf, ram_size, save_data))
         },
         // MBC2.
-        0x05 => Box::new(MBC2::new(buf, 512, None)),
+        0x05 => Box::new(mbc2::MBC2::new(buf, 512, None)),
         // MBC2 + BATTERY.
-        0x06 => Box::new(MBC2::new(buf, 512, save_data)),
+        0x06 => Box::new(mbc2::MBC2::new(buf, 512, save_data)),
         // MBC3 + TIMER + BATTERY.
-        0x0F => Box::new(MBC3::new(buf, 0, save_data, None)),
+        0x0F => Box::new(mbc3::MBC3::new(buf, 0, save_data, None)),
         // MBC3 + TIMER + RAM + BATTERY. 
         0x10 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC3::new(buf, ram_size, save_data, None))
+            Box::new(mbc3::MBC3::new(buf, ram_size, save_data, None))
         },
         // MBC3.
-        0x11 => Box::new(MBC3::new(buf, 0, None, None)),
+        0x11 => Box::new(mbc3::MBC3::new(buf, 0, None, None)),
         // MBC3 + RAM.
         0x12 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC3::new(buf, ram_size, None, None))
+            Box::new(mbc3::MBC3::new(buf, ram_size, None, None))
         },
         // MBC3 + RAM + BATTERY.
         0x13 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC3::new(buf, ram_size, save_data, None))
+            Box::new(mbc3::MBC3::new(buf, ram_size, save_data, None))
         },
         // MBC5.
-        0x19 => Box::new(MBC5::new(buf, 0, None)),
+        0x19 => Box::new(mbc5::MBC5::new(buf, 0, None)),
         // MBC5 + RAM.
         0x1A => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC5::new(buf, ram_size, None))
+            Box::new(mbc5::MBC5::new(buf, ram_size, None))
         },
         // MBC5 + RAM + BATTERY.
         0x1B => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(MBC5::new(buf, ram_size, save_data))
+            Box::new(mbc5::MBC5::new(buf, ram_size, save_data))
         },
         unknown => return Err(CartError::UnsupportedCartType(unknown)),
     };
@@ -275,31 +295,7 @@ pub fn ram_size(n: u8) -> usize {
     }
 }
 
-// Small games of not more than 32 KiB ROM do not require a MBC chip for ROM banking.
-pub struct ROM(Vec<u8>);
 
-impl ROM {
-    pub fn new(data: Vec<u8>) -> Self {
-        ROM(data)
-    }
-}
-
-impl MemoryBus for ROM {
-    fn read_byte(&self, address: u16) -> u8 { self.0[address as usize] }
-    // ROM is read-only so no write functionality.
-    fn write_byte(&mut self, _: u16, _: u8) {}
-}
-
-impl Cartridge for ROM { 
-
-    fn len(&self) -> usize { self.0.len() }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn save(&self) {}
-
-    #[cfg(target_arch = "wasm32")]
-    fn save(&self) -> *const u8 { self.0.as_ptr() }
-}
 
 #[cfg(test)]
 mod test {

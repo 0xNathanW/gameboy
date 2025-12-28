@@ -12,7 +12,6 @@ pub const SCREEN_HEIGHT: usize = 144;
 
 mod memory;
 mod gpu;
-mod mbc;
 mod timer;
 mod bit;
 mod serial;
