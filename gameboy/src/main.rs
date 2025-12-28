@@ -17,7 +17,7 @@ use core::{
 mod test;
 
 #[derive(Parser)]
-#[command(author = "Nathanw", about  = "A Rust powered Gameboy emulator.")]
+#[command(author = "NathanW", about  = "A Rust powered Gameboy emulator.")]
 struct Args {
     #[arg(short, long, help = "Path to rom")]
     path:   String,
