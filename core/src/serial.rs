@@ -1,8 +1,9 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-
-use super::bus::MemoryBus;
-use super::intf::{Intf, InterruptSource};
+use crate::{
+    bus::MemoryBus,
+    intf::{Intf, InterruptSource},
+};
 
 // Serial is for gameboy multiplayer functionality.
 // Since the emulator has no multiplayer it is used for testing puposes instead.

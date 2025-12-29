@@ -1,10 +1,11 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-
-use super::bit::Bit;
-use super::bus::MemoryBus;
-use super::clock::Clock;
-use super::intf::{Intf, InterruptSource};
+use crate::{
+    bit::Bit,
+    bus::MemoryBus,
+    clock::Clock,
+    intf::{Intf, InterruptSource},
+};
 
 #[derive(Default)]
 pub struct Timer {

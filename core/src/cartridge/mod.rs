@@ -1,6 +1,5 @@
 use thiserror::Error;
-use std::path::Path;
-
+use std::{path::{Path, PathBuf}, io::{Read, ErrorKind}, fs::File};
 use crate::bus::MemoryBus;
 
 mod rom;
@@ -11,10 +10,9 @@ mod mbc5;
 
 // TODO: move
 #[cfg(not(target_arch = "wasm32"))]
-fn load_save(save_path: &std::path::PathBuf, ram_size: usize) -> Vec<u8> {
-    use std::io::{Read, ErrorKind};
+fn load_save(save_path: &PathBuf, ram_size: usize) -> Vec<u8> {
     
-    match std::fs::File::open(save_path) {
+    match File::open(save_path) {
         Ok(mut file) => {
             let mut ram = vec![];
             file.read_to_end(&mut ram).unwrap();

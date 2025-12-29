@@ -1,8 +1,7 @@
-use cpal::OutputCallbackInfo;
-use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
+use cpal::{traits::{HostTrait, DeviceTrait, StreamTrait}, OutputCallbackInfo};
 use minifb::{Window, WindowOptions, Scale, Key};
 use clap::Parser;
-use anyhow::{Result, ensure, Context, Ok};
+use anyhow::{Result, ensure, Context};
 use std::{path::Path, ffi::OsStr};
 
 use core::{

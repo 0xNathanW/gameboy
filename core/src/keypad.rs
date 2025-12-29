@@ -1,7 +1,9 @@
 use std::{rc::Rc, cell::RefCell};
-use super::bit::Bit;
-use super::intf::{Intf, InterruptSource};
-use super::bus::MemoryBus;
+use crate::{
+    bit::Bit,
+    intf::{Intf, InterruptSource},
+    bus::MemoryBus,
+};
 
 // FF00 - P1/JOYP - Joypad (R/W)
 //

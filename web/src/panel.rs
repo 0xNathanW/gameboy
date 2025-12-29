@@ -1,6 +1,5 @@
 use yew::prelude::*;
-use gloo::utils::document;
-use gloo::console::log;
+use gloo::{utils::document, console::log};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct InfoProps {

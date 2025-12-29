@@ -1,7 +1,9 @@
-use super::cartridge::Cartridge;
-use super::bus::MemoryBus;
-use super::memory::Memory;
-use super::serial::SerialCallback;
+use crate::{
+    cartridge::Cartridge,
+    bus::MemoryBus,
+    memory::Memory,
+    serial::SerialCallback,
+};
 
 mod registers;
 mod opcodes;

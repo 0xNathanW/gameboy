@@ -3,8 +3,7 @@
 #[test]
 fn cpu_instructions() {
     use std::path::Path;
-    use core::cpu::CPU;
-    use core::cartridge;
+    use core::{cpu::CPU, cartridge};
 
     let test_path = Path::new("./test_roms/cpu_instrs/cpu_instrs.gb");
     assert!(test_path.exists());
@@ -75,7 +74,6 @@ fn minifb_test() {
 // Should play a simmple beep sound.
 #[test]
 fn cpal_test() {
-    use cpal;
     use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
 
     let host = cpal::default_host();

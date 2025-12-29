@@ -1,5 +1,4 @@
-use crate::bus::MemoryBus;
-use crate::bit::Bit;
+use crate::{bus::MemoryBus, bit::Bit};
 
 // LCDC (LCD control) (R/W) - FF40
     // Main control register, its bits toggle what elements are displayed and how.

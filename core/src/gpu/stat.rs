@@ -1,5 +1,4 @@
-use crate::bus::MemoryBus;
-use crate::bit::Bit;
+use crate::{bus::MemoryBus, bit::Bit};
 
 // STAT (LCD status) (R/W) - FF41
 /*

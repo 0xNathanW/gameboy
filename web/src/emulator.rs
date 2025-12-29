@@ -1,6 +1,4 @@
-use core::cpu::CPU;
-use core::cartridge::{open_cartridge, Cartridge};
-use core::keypad::GbKey;
+use core::{cpu::CPU, cartridge::{open_cartridge, Cartridge}, keypad::GbKey};
 
 pub const DEMO_DATA: &'static [u8] = include_bytes!("../pocket.gb");
 

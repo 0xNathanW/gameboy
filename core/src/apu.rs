@@ -1,9 +1,8 @@
-use super::clock::Clock;
-use super::bus::MemoryBus;
 use blip_buf::BlipBuf;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use crate::{clock::Clock, bus::MemoryBus};
 
 const CLOCK_FREQUENCY: u32 = 4_194_304;
 

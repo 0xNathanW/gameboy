@@ -1,19 +1,22 @@
-mod ldlc;
-mod stat;
-mod palette;
+
 
 use std::cell::RefCell;
 use std::rc::Rc;
-
-use self::stat::Mode;
-use super::bit::Bit;
-use super::bus::MemoryBus;
-use super::intf::{Intf, InterruptSource};
-use super::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{
+    bit::Bit,
+    bus::MemoryBus,
+    intf::{Intf, InterruptSource},
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+};
 
 use ldlc::LCDC;
-use stat::STAT;
+use stat::{STAT, Mode};
 use palette::Palette;
+
+mod ldlc;
+mod stat;
+mod palette;
 
 const VRAM_SIZE: usize = 16_384;
 const OAM_SIZE: usize = 160;

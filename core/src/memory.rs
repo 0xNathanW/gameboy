@@ -1,26 +1,24 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-
-use crate::SCREEN_WIDTH;
-use crate::cartridge::CartError;
-use super::cartridge::Cartridge;
-use super::serial::SerialCallback;
-use super::cartridge;
-use super::bus::MemoryBus;
-use super::timer::Timer;
-use super::gpu::GPU;
-use super::keypad::KeyPad;
-use super::intf::Intf;
-use super::serial::Serial;
+use crate::{
+    SCREEN_WIDTH,
+    cartridge::{CartError, Cartridge},
+    serial::{SerialCallback, Serial},
+    bus::MemoryBus,
+    timer::Timer,
+    gpu::GPU,
+    keypad::KeyPad,
+    intf::Intf,
+};
 #[cfg(feature = "audio")]
-use super::apu::APU;
+use crate::apu::APU;
 
 const HRAM_SIZE: usize = 127;        // High RAM.
 const WRAM_SIZE:  usize = 8_192;    // 8KB Work RAM.
 
 pub struct Memory {
     
-    cartridge:      Box<dyn cartridge::Cartridge>,    
+    cartridge:      Box<dyn Cartridge>,    
     wram:           [u8; WRAM_SIZE],
     hram:           [u8; HRAM_SIZE],
     timer:          Timer,

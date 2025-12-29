@@ -1,60 +1,58 @@
-use crate::bus::MemoryBus;
-use super::CPU;
-use super::registers::Flag::{C, N, Z, H};
+use super::{MemoryBus, registers::Flag, CPU};
 
 impl CPU {
 
     // ADD A, n - add n (+ carry) to A.
     fn alu_add(&mut self, n: u8, carry: bool) {
         let a = self.regs.a;
-        let c = u8::from(self.regs.get_flag(C) && carry);
+        let c = u8::from(self.regs.get_flag(Flag::C) && carry);
         let res = a.wrapping_add(n).wrapping_add(c);
-        self.regs.set_flag(C, (a as u16) + (n as u16) + (c as u16) > 0xFF);     // Set if carry from bit 7.        
-        self.regs.set_flag(H, (a&0xF) + (n&0xF) + c > 0xF);                     // Set if carry from bit 3. 
-        self.regs.set_flag(N, false);                                           // Reset.
-        self.regs.set_flag(Z, res == 0);                                        // Set if result is 0.
+        self.regs.set_flag(Flag::C, (a as u16) + (n as u16) + (c as u16) > 0xFF);     // Set if carry from bit 7.        
+        self.regs.set_flag(Flag::H, (a&0xF) + (n&0xF) + c > 0xF);                     // Set if carry from bit 3. 
+        self.regs.set_flag(Flag::N, false);                                           // Reset.
+        self.regs.set_flag(Flag::Z, res == 0);                                        // Set if result is 0.
         self.regs.a = res;
     }
 
     // SUB n - subtract n (+ carry) from A.
     fn alu_sub(&mut self, n: u8, carry: bool) {
         let a = self.regs.a;
-        let c = u8::from(self.regs.get_flag(C) && carry);
+        let c = u8::from(self.regs.get_flag(Flag::C) && carry);
         let res = a.wrapping_sub(n).wrapping_sub(c);
-        self.regs.set_flag(H, (a & 0xF) < (n & 0xF) + c);               // Set if no borrow from bit 4.
-        self.regs.set_flag(C, (a as u16) < (n as u16) + (c as u16));    // Set if no borrow.
-        self.regs.set_flag(N, true);                                    // Set.
-        self.regs.set_flag(Z, res == 0);                                // Set if result is 0.
+        self.regs.set_flag(Flag::H, (a & 0xF) < (n & 0xF) + c);               // Set if no borrow from bit 4.
+        self.regs.set_flag(Flag::C, (a as u16) < (n as u16) + (c as u16));    // Set if no borrow.
+        self.regs.set_flag(Flag::N, true);                                    // Set.
+        self.regs.set_flag(Flag::Z, res == 0);                                // Set if result is 0.
         self.regs.a = res;
     }
     
     // AND n - logically AND n with A, result in A.
     fn alu_and(&mut self, n: u8) {
         let res = self.regs.a & n;
-        self.regs.set_flag(Z, res == 0);    // Set if result is 0.
-        self.regs.set_flag(N, false);       // Reset.
-        self.regs.set_flag(H, true);        // Set.
-        self.regs.set_flag(C, false);       // Reset.
+        self.regs.set_flag(Flag::Z, res == 0);    // Set if result is 0.
+        self.regs.set_flag(Flag::N, false);       // Reset.
+        self.regs.set_flag(Flag::H, true);        // Set.
+        self.regs.set_flag(Flag::C, false);       // Reset.
         self.regs.a = res;
     } 
 
     // OR n - logical OR n with A, result in A.
     fn alu_or(&mut self, n: u8) {
         let res = self.regs.a | n;
-        self.regs.set_flag(Z, res == 0);    // Set if result is 0.
-        self.regs.set_flag(N, false);       // Reset.
-        self.regs.set_flag(H, false);       // Reset.
-        self.regs.set_flag(C, false);       // Reset.
+        self.regs.set_flag(Flag::Z, res == 0);    // Set if result is 0.
+        self.regs.set_flag(Flag::N, false);       // Reset.
+        self.regs.set_flag(Flag::H, false);       // Reset.
+        self.regs.set_flag(Flag::C, false);       // Reset.
         self.regs.a = res;
     }
 
     // XOR n - logical XOR n with A, result in A.
     fn alu_xor(&mut self, n: u8) {
         let res = self.regs.a ^ n;
-        self.regs.set_flag(Z, res == 0);    // Set if result is 0.
-        self.regs.set_flag(N, false);       // Reset.
-        self.regs.set_flag(H, false);       // Reset.
-        self.regs.set_flag(C, false);       // Reset.
+        self.regs.set_flag(Flag::Z, res == 0);    // Set if result is 0.
+        self.regs.set_flag(Flag::N, false);       // Reset.
+        self.regs.set_flag(Flag::H, false);       // Reset.
+        self.regs.set_flag(Flag::C, false);       // Reset.
         self.regs.a = res;
     }
 
@@ -68,18 +66,18 @@ impl CPU {
     // INC n - increment register n.
     fn alu_inc(&mut self, n: u8) -> u8 {
         let res = n.wrapping_add(1);
-        self.regs.set_flag(Z, res == 0);                // Set if result is 0.
-        self.regs.set_flag(N, false);                   // Reset.
-        self.regs.set_flag(H, (n & 0xF) + 1 > 0xF);       // Set if carry from bit 3.
+        self.regs.set_flag(Flag::Z, res == 0);                // Set if result is 0.
+        self.regs.set_flag(Flag::N, false);                   // Reset.
+        self.regs.set_flag(Flag::H, (n & 0xF) + 1 > 0xF);       // Set if carry from bit 3.
         res
     }
 
     // DEC n - decrement register n.
     fn alu_dec(&mut self, n: u8) -> u8 {
         let res = n.wrapping_sub(1);
-        self.regs.set_flag(Z, res == 0);        // Set if result is 0.
-        self.regs.set_flag(N, true);            // Set.
-        self.regs.set_flag(H, (n & 0xF) == 0);    // Set if no borrow from bit 4.
+        self.regs.set_flag(Flag::Z, res == 0);        // Set if result is 0.
+        self.regs.set_flag(Flag::N, true);            // Set.
+        self.regs.set_flag(Flag::H, (n & 0xF) == 0);    // Set if no borrow from bit 4.
         res
     }
 
@@ -88,18 +86,18 @@ impl CPU {
     fn alu_add16(&mut self, n: u16) {
         let hl = self.regs.get_hl();
         let res = hl.wrapping_add(n);
-        self.regs.set_flag(N, false);                               // Reset.
-        self.regs.set_flag(H, (hl & 0xFFF) + (n & 0xFFF) > 0xFFF);  // Set if carry from bit 11.
-        self.regs.set_flag(C, hl > 0xFFFF - n);     // Set if carry from bit 15.
+        self.regs.set_flag(Flag::N, false);                               // Reset.
+        self.regs.set_flag(Flag::H, (hl & 0xFFF) + (n & 0xFFF) > 0xFFF);  // Set if carry from bit 11.
+        self.regs.set_flag(Flag::C, hl > 0xFFFF - n);     // Set if carry from bit 15.
         self.regs.set_hl(res);
     }
 
     // SWAP n - swap upper and lower nibles of n.
     fn alu_swap(&mut self, n: u8) -> u8 {
-        self.regs.set_flag(C, false);   // Reset.
-        self.regs.set_flag(H, false);   // Reset.
-        self.regs.set_flag(N, false);   // Reset.
-        self.regs.set_flag(Z, n == 0);  // Set if n is 0.
+        self.regs.set_flag(Flag::C, false);   // Reset.
+        self.regs.set_flag(Flag::H, false);   // Reset.
+        self.regs.set_flag(Flag::N, false);   // Reset.
+        self.regs.set_flag(Flag::Z, n == 0);  // Set if n is 0.
         (n >> 4) | (n << 4)
     }
 
@@ -107,21 +105,21 @@ impl CPU {
     fn alu_rlc(&mut self, n: u8) -> u8 {
         let carry = (n & 0b10000000) >> 7 == 0x1;
         let rotated = (n << 1) | carry as u8;    // Rotate left.
-        self.regs.set_flag(C, carry);
-        self.regs.set_flag(H, false);
-        self.regs.set_flag(N, false);
-        self.regs.set_flag(Z, rotated == 0);
+        self.regs.set_flag(Flag::C, carry);
+        self.regs.set_flag(Flag::H, false);
+        self.regs.set_flag(Flag::N, false);
+        self.regs.set_flag(Flag::Z, rotated == 0);
         rotated
     }
 
     // RL n - rotate n left through carry flag.
     fn alu_rl(&mut self, n: u8) -> u8 {
         let carry = (n & 0b10000000) >> 7 == 1;
-        let rotated = (n << 1) + self.regs.get_flag(C) as u8;
-        self.regs.set_flag(C, carry);
-        self.regs.set_flag(H, false);
-        self.regs.set_flag(N, false);
-        self.regs.set_flag(Z, rotated == 0);
+        let rotated = (n << 1) + self.regs.get_flag(Flag::C) as u8;
+        self.regs.set_flag(Flag::C, carry);
+        self.regs.set_flag(Flag::H, false);
+        self.regs.set_flag(Flag::N, false);
+        self.regs.set_flag(Flag::Z, rotated == 0);
         rotated
     }
 
@@ -129,21 +127,21 @@ impl CPU {
     fn alu_rrc(&mut self, n: u8) -> u8 {
         let carry = n & 1 == 1;
         let rotated = (n >> 1) | (if carry {0b10000000} else {0});
-        self.regs.set_flag(C, carry);
-        self.regs.set_flag(H, false);
-        self.regs.set_flag(N, false);
-        self.regs.set_flag(Z, rotated == 0);
+        self.regs.set_flag(Flag::C, carry);
+        self.regs.set_flag(Flag::H, false);
+        self.regs.set_flag(Flag::N, false);
+        self.regs.set_flag(Flag::Z, rotated == 0);
         rotated
     }
 
     // RR n - rotate n right through carry flag.
     fn alu_rr(&mut self, n: u8) -> u8 {
         let carry = n & 1 == 1;
-        let rotated = (n >> 1) | (if self.regs.get_flag(C) {0x80} else {0});
-        self.regs.set_flag(C, carry);
-        self.regs.set_flag(H, false);
-        self.regs.set_flag(N, false);
-        self.regs.set_flag(Z, rotated == 0);
+        let rotated = (n >> 1) | (if self.regs.get_flag(Flag::C) {0x80} else {0});
+        self.regs.set_flag(Flag::C, carry);
+        self.regs.set_flag(Flag::H, false);
+        self.regs.set_flag(Flag::N, false);
+        self.regs.set_flag(Flag::Z, rotated == 0);
         rotated
     }
 
@@ -151,10 +149,10 @@ impl CPU {
     fn alu_sla(&mut self, n: u8) -> u8 {
         let carry = n & 0b10000000 == 0b10000000;
         let shifted = n << 1;
-        self.regs.set_flag(C, carry);
-        self.regs.set_flag(H, false);
-        self.regs.set_flag(N, false);
-        self.regs.set_flag(Z, shifted == 0);
+        self.regs.set_flag(Flag::C, carry);
+        self.regs.set_flag(Flag::H, false);
+        self.regs.set_flag(Flag::N, false);
+        self.regs.set_flag(Flag::Z, shifted == 0);
         shifted
     }
 
@@ -162,10 +160,10 @@ impl CPU {
     fn alu_sra(&mut self, n: u8) -> u8 {
         let carry = n & 1 == 1;
         let shifted = (n >> 1) | (n & 0b10000000);
-        self.regs.set_flag(C, carry);
-        self.regs.set_flag(H, false);
-        self.regs.set_flag(N, false);
-        self.regs.set_flag(Z, shifted == 0);
+        self.regs.set_flag(Flag::C, carry);
+        self.regs.set_flag(Flag::H, false);
+        self.regs.set_flag(Flag::N, false);
+        self.regs.set_flag(Flag::Z, shifted == 0);
         shifted
     }
 
@@ -173,19 +171,19 @@ impl CPU {
     fn alu_srl(&mut self, n: u8) -> u8 {
         let carry = n & 1 == 1; 
         let shifted = n >> 1; 
-        self.regs.set_flag(C, carry);
-        self.regs.set_flag(H, false);
-        self.regs.set_flag(N, false);
-        self.regs.set_flag(Z, shifted == 0);
+        self.regs.set_flag(Flag::C, carry);
+        self.regs.set_flag(Flag::H, false);
+        self.regs.set_flag(Flag::N, false);
+        self.regs.set_flag(Flag::Z, shifted == 0);
         shifted
     }
 
     // BIT b, r - test bit b in register r.
     fn alu_bit(&mut self, b: u8, n: u8) {
         let res = n & (1 << b) == 0;
-        self.regs.set_flag(Z, res);
-        self.regs.set_flag(N, false);
-        self.regs.set_flag(H, true);
+        self.regs.set_flag(Flag::Z, res);
+        self.regs.set_flag(Flag::N, false);
+        self.regs.set_flag(Flag::H, true);
     }
 
     // JR - add n to the current address and jump to it.
@@ -338,10 +336,10 @@ impl CPU {
             0xF8 => {
                 let b = self.next_byte() as i8 as i16 as u16;
                 let sp = self.regs.sp;
-                self.regs.set_flag(Z, false);
-                self.regs.set_flag(N, false);
-                self.regs.set_flag(H, (sp & 0xF) + (b & 0xF) > 0xF);
-                self.regs.set_flag(C, (sp & 0xFF) + (b & 0xFF) > 0xFF);
+                self.regs.set_flag(Flag::Z, false);
+                self.regs.set_flag(Flag::N, false);
+                self.regs.set_flag(Flag::H, (sp & 0xF) + (b & 0xF) > 0xF);
+                self.regs.set_flag(Flag::C, (sp & 0xFF) + (b & 0xFF) > 0xFF);
                 self.regs.set_hl(sp.wrapping_add(b)); 
                 12
             },
@@ -476,10 +474,10 @@ impl CPU {
             0xE8 => {
                 let b = self.next_byte() as i8 as i16 as u16;
                 let sp = self.regs.sp;
-                self.regs.set_flag(Z, false);   // Reset.
-                self.regs.set_flag(N, false);   // Reset.
-                self.regs.set_flag(H, (sp & 0xF) + (b & 0xF) > 0xF);
-                self.regs.set_flag(C, (sp & 0xFF) + (b & 0xFF) > 0xFF);     
+                self.regs.set_flag(Flag::Z, false);   // Reset.
+                self.regs.set_flag(Flag::N, false);   // Reset.
+                self.regs.set_flag(Flag::H, (sp & 0xF) + (b & 0xF) > 0xF);
+                self.regs.set_flag(Flag::C, (sp & 0xFF) + (b & 0xFF) > 0xFF);     
                 self.regs.sp = self.regs.sp.wrapping_add(b); 
                 16
             },
@@ -498,24 +496,24 @@ impl CPU {
             // CPL - complement A register (flip all bits).
             0x2F => {
                 self.regs.a = !self.regs.a;
-                self.regs.set_flag(H, true);
-                self.regs.set_flag(N, true);
+                self.regs.set_flag(Flag::H, true);
+                self.regs.set_flag(Flag::N, true);
                 4
             },
             
             // CCF - complement carry flag.
             0x3F => {
-                self.regs.set_flag(C, !self.regs.get_flag(C));
-                self.regs.set_flag(N, false);
-                self.regs.set_flag(H, false);
+                self.regs.set_flag(Flag::C, !self.regs.get_flag(Flag::C));
+                self.regs.set_flag(Flag::N, false);
+                self.regs.set_flag(Flag::H, false);
                 4
             },
 
             // SCF - set carry flag.
             0x37 => {
-                self.regs.set_flag(C, true);
-                self.regs.set_flag(N, false);
-                self.regs.set_flag(H, false);
+                self.regs.set_flag(Flag::C, true);
+                self.regs.set_flag(Flag::N, false);
+                self.regs.set_flag(Flag::H, false);
                 4
             },
 
@@ -532,19 +530,19 @@ impl CPU {
             0xFB => { self.enable_interrupt = 2; 4 },
 
             // Rotates and shifts for register A. // MAYBE SET Z FLAG AFTER.
-            0x07 => { self.regs.a = self.alu_rlc(self.regs.a); self.regs.set_flag(Z, false); 4 },
-            0x17 => { self.regs.a = self.alu_rl(self.regs.a); self.regs.set_flag(Z, false); 4 },
-            0x0F => { self.regs.a = self.alu_rrc(self.regs.a); self.regs.set_flag(Z, false); 4 },
-            0x1F => { self.regs.a = self.alu_rr(self.regs.a); self.regs.set_flag(Z, false); 4 },
+            0x07 => { self.regs.a = self.alu_rlc(self.regs.a); self.regs.set_flag(Flag::Z, false); 4 },
+            0x17 => { self.regs.a = self.alu_rl(self.regs.a); self.regs.set_flag(Flag::Z, false); 4 },
+            0x0F => { self.regs.a = self.alu_rrc(self.regs.a); self.regs.set_flag(Flag::Z, false); 4 },
+            0x1F => { self.regs.a = self.alu_rr(self.regs.a); self.regs.set_flag(Flag::Z, false); 4 },
 
              // DAA - decimal adjust register a.
             0x27 => {
                 let mut a = self.regs.a;
-                let mut correction = if self.regs.get_flag(C) { 0x60 } else { 0 };
-                if self.regs.get_flag(H) {
+                let mut correction = if self.regs.get_flag(Flag::C) { 0x60 } else { 0 };
+                if self.regs.get_flag(Flag::H) {
                     correction |= 0x06;
                 }
-                if !self.regs.get_flag(N) {
+                if !self.regs.get_flag(Flag::N) {
                     if a & 0x0F > 0x09 {
                         correction |= 0x06;
                     }
@@ -556,28 +554,28 @@ impl CPU {
                     a = a.wrapping_sub(correction);
                 }
 
-                self.regs.set_flag(C, correction >= 0x60);
-                self.regs.set_flag(H, false);
-                self.regs.set_flag(Z, a == 0);
+                self.regs.set_flag(Flag::C, correction >= 0x60);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::Z, a == 0);
                 self.regs.a = a;
                 4
             },
 
             // Jumps - jump to address if condition is true.
             0xC3 => { self.regs.pc = self.next_word(); 16 },
-            0xC2 => { let addr = self.next_word(); if !self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
-            0xCA => { let addr = self.next_word(); if self.regs.get_flag(Z) { self.regs.pc = addr; 16 } else { 12 }},
-            0xD2 => { let addr = self.next_word(); if !self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
-            0xDA => { let addr = self.next_word(); if self.regs.get_flag(C) { self.regs.pc = addr; 16 } else { 12 }},
+            0xC2 => { let addr = self.next_word(); if !self.regs.get_flag(Flag::Z) { self.regs.pc = addr; 16 } else { 12 }},
+            0xCA => { let addr = self.next_word(); if self.regs.get_flag(Flag::Z) { self.regs.pc = addr; 16 } else { 12 }},
+            0xD2 => { let addr = self.next_word(); if !self.regs.get_flag(Flag::C) { self.regs.pc = addr; 16 } else { 12 }},
+            0xDA => { let addr = self.next_word(); if self.regs.get_flag(Flag::C) { self.regs.pc = addr; 16 } else { 12 }},
             // JP (HL) jump to address contained in hl.
             0xE9 => { self.regs.pc = self.regs.get_hl(); 4 },
             // JR n - add n to current address and jump to it.
             0x18 => { let b = self.next_byte(); self.jr(b); 8 },
             // JR cc, n - if condition true, add n to current address and jump to it.
-            0x20 => { let b = self.next_byte(); if !self.regs.get_flag(Z) { self.jr(b); 12 } else { 8 } },
-            0x28 => { let b = self.next_byte(); if self.regs.get_flag(Z) { self.jr(b); 12 } else { 8 } },
-            0x30 => { let b = self.next_byte(); if !self.regs.get_flag(C) { self.jr(b); 12 } else { 8 } },
-            0x38 => { let b = self.next_byte(); if self.regs.get_flag(C) { self.jr(b); 12 } else { 8 } },
+            0x20 => { let b = self.next_byte(); if !self.regs.get_flag(Flag::Z) { self.jr(b); 12 } else { 8 } },
+            0x28 => { let b = self.next_byte(); if self.regs.get_flag(Flag::Z) { self.jr(b); 12 } else { 8 } },
+            0x30 => { let b = self.next_byte(); if !self.regs.get_flag(Flag::C) { self.jr(b); 12 } else { 8 } },
+            0x38 => { let b = self.next_byte(); if self.regs.get_flag(Flag::C) { self.jr(b); 12 } else { 8 } },
 
             // Calls
             // CALL nn - push address of next instruction onto stack and then jump to address nn.
@@ -585,7 +583,7 @@ impl CPU {
             // CALL cc, nn - call address n if following condition is true.
             0xC4 => {
                 let addr = self.next_word();
-                if !self.regs.get_flag(Z) {
+                if !self.regs.get_flag(Flag::Z) {
                     self.stack_push(self.regs.pc);
                     self.regs.pc = addr;
                     24
@@ -593,7 +591,7 @@ impl CPU {
             },
             0xCC => {
                 let addr = self.next_word();
-                if self.regs.get_flag(Z) {
+                if self.regs.get_flag(Flag::Z) {
                     self.stack_push(self.regs.pc);
                     self.regs.pc = addr;
                     24
@@ -601,7 +599,7 @@ impl CPU {
             },
             0xD4 => {
                 let addr = self.next_word();
-                if !self.regs.get_flag(C) {
+                if !self.regs.get_flag(Flag::C) {
                     self.stack_push(self.regs.pc);
                     self.regs.pc = addr;
                     24
@@ -609,7 +607,7 @@ impl CPU {
             },
             0xDC => {
                 let addr = self.next_word();
-                if self.regs.get_flag(C) {
+                if self.regs.get_flag(Flag::C) {
                     self.stack_push(self.regs.pc);
                     self.regs.pc = addr;
                     24
@@ -630,10 +628,10 @@ impl CPU {
             // Returns
             // RET - pop two bytes from stack and jump to that address.
             0xC9 => { self.regs.pc = self.stack_pop(); 16 },
-            0xC0 => { if !self.regs.get_flag(Z) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
-            0xC8 => { if self.regs.get_flag(Z) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
-            0xD0 => { if !self.regs.get_flag(C) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
-            0xD8 => { if self.regs.get_flag(C) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
+            0xC0 => { if !self.regs.get_flag(Flag::Z) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
+            0xC8 => { if self.regs.get_flag(Flag::Z) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
+            0xD0 => { if !self.regs.get_flag(Flag::C) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
+            0xD8 => { if self.regs.get_flag(Flag::C) { self.regs.pc = self.stack_pop(); 20 } else { 8 }},
             // RETI - pop two bytes from stack and jump to that address then enables interrupts.
             0xD9 => { self.regs.pc = self.stack_pop(); self.ime = true; 8 },
 

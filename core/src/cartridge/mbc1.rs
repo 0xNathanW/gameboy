@@ -1,5 +1,4 @@
 use std::{path::PathBuf, io::Write, fs::File, vec};
-
 use super::{MemoryBus, Cartridge, Result};
 #[cfg(not(target_arch = "wasm32"))]
 use super::load_save;
