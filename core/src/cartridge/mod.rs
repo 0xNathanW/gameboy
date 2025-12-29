@@ -91,11 +91,13 @@ pub trait Cartridge: MemoryBus {
 
     // Retrieve title of game in upper-case ASCI.
     fn title(&self) -> String {
-        let mut title = String::new();
-        for address in 0x134..=0x143 {
-            title.push(self.read_byte(address) as char);
-        }
-        title.trim().to_string()
+        (0x134..=0x143)
+            .map(|addr| self.read_byte(addr))
+            .take_while(|&b| b != 0)
+            .map(|b| b as char)
+            .collect::<String>()
+            .trim()
+            .to_string()
     }
 
     // Retrieve type of cartridge.
