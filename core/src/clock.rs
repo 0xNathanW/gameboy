@@ -1,14 +1,12 @@
-
 // Each timer has an internal counter that is decremented on each input clock.
 // When the counter becomes zero, it is reloaded with the period and an output clock is generated.
 #[derive(Default)]
 pub struct Clock {
     pub period: u32,
-    pub n:      u32,
+    pub n: u32,
 }
 
 impl Clock {
-    
     pub fn new(period: u32) -> Self {
         Self { period, n: 0 }
     }

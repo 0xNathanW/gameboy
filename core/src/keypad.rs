@@ -1,9 +1,9 @@
-use std::{rc::Rc, cell::RefCell};
 use crate::{
     bit::Bit,
-    intf::{Intf, InterruptSource},
     bus::MemoryBus,
+    intf::{InterruptSource, Intf},
 };
+use std::{cell::RefCell, rc::Rc};
 
 // FF00 - P1/JOYP - Joypad (R/W)
 //
@@ -19,8 +19,8 @@ use crate::{
 #[derive(Clone)]
 pub enum GbKey {
     Right,
-    Left, 
-    Up,  
+    Left,
+    Up,
     Down,
     A,
     B,
@@ -29,20 +29,19 @@ pub enum GbKey {
 }
 
 /*
-The eight Game Boy action/direction buttons are arranged as a 2x4 matrix. 
+The eight Game Boy action/direction buttons are arranged as a 2x4 matrix.
 Select either action or direction buttons by writing to this register, then read out the bits 0-3.
 */
 pub struct KeyPad {
-    reg:        [u8; 2],
-    select:     u8,
-    intf:       Rc<RefCell<Intf>>,
+    reg: [u8; 2],
+    select: u8,
+    intf: Rc<RefCell<Intf>>,
 }
 
 impl KeyPad {
-
     pub fn new(intf: Rc<RefCell<Intf>>) -> Self {
         Self {
-            reg:    [0xF, 0xF],
+            reg: [0xF, 0xF],
             select: 0,
             intf,
         }
@@ -50,46 +49,52 @@ impl KeyPad {
 
     pub fn key_press(&mut self, key: GbKey) {
         match key {
-            GbKey::Right  => self.reg[1] &= 0b1110,
-            GbKey::Left   => self.reg[1] &= 0b1101,
-            GbKey::Up     => self.reg[1] &= 0b1011,
-            GbKey::Down   => self.reg[1] &= 0b0111,
+            GbKey::Right => self.reg[1] &= 0b1110,
+            GbKey::Left => self.reg[1] &= 0b1101,
+            GbKey::Up => self.reg[1] &= 0b1011,
+            GbKey::Down => self.reg[1] &= 0b0111,
 
-            GbKey::A      => self.reg[0] &= 0b1110,
-            GbKey::B      => self.reg[0] &= 0b1101,
+            GbKey::A => self.reg[0] &= 0b1110,
+            GbKey::B => self.reg[0] &= 0b1101,
             GbKey::Select => self.reg[0] &= 0b1011,
-            GbKey::Start  => self.reg[0] &= 0b0111,
+            GbKey::Start => self.reg[0] &= 0b0111,
         }
-        self.intf.borrow_mut().set_interrupt(InterruptSource::Keypad);
+        self.intf
+            .borrow_mut()
+            .set_interrupt(InterruptSource::Keypad);
     }
 
     pub fn key_release(&mut self, key: GbKey) {
         match key {
-            GbKey::Right  => self.reg[1] |= !(0b1110),
-            GbKey::Left   => self.reg[1] |= !(0b1101),
-            GbKey::Up     => self.reg[1] |= !(0b1011),
-            GbKey::Down   => self.reg[1] |= !(0b0111),
-            
-            GbKey::A      => self.reg[0] |= !(0b1110),
-            GbKey::B      => self.reg[0] |= !(0b1101),
+            GbKey::Right => self.reg[1] |= !(0b1110),
+            GbKey::Left => self.reg[1] |= !(0b1101),
+            GbKey::Up => self.reg[1] |= !(0b1011),
+            GbKey::Down => self.reg[1] |= !(0b0111),
+
+            GbKey::A => self.reg[0] |= !(0b1110),
+            GbKey::B => self.reg[0] |= !(0b1101),
             GbKey::Select => self.reg[0] |= !(0b1011),
-            GbKey::Start  => self.reg[0] |= !(0b0111),
+            GbKey::Start => self.reg[0] |= !(0b0111),
         };
     }
 }
 
 impl MemoryBus for KeyPad {
-
     fn read_byte(&self, address: u16) -> u8 {
         assert_eq!(address, 0xFF00);
-        if self.select.bit(4)       { self.reg[0] }
-        else if self.select.bit(5)  { self.reg[1] }
-        else                        { assert_eq!(self.select, 0); 0 }
+        if self.select.bit(4) {
+            self.reg[0]
+        } else if self.select.bit(5) {
+            self.reg[1]
+        } else {
+            assert_eq!(self.select, 0);
+            0
+        }
     }
 
     // The only keypad write is to switch which keys are read.
-    fn write_byte(&mut self, address: u16, b: u8) { 
+    fn write_byte(&mut self, address: u16, b: u8) {
         assert_eq!(address, 0xFF00);
-        self.select = b & 0b0011_0000; 
+        self.select = b & 0b0011_0000;
     }
 }

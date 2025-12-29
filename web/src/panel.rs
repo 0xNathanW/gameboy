@@ -1,24 +1,23 @@
+use gloo::{console::log, utils::document};
 use yew::prelude::*;
-use gloo::{utils::document, console::log};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct InfoProps {
-    
     #[prop_or_default]
-    pub is_cgb:  bool,
-    
+    pub is_cgb: bool,
+
     #[prop_or(AttrValue::from("Unknown"))]
     pub rom_name: AttrValue,
-    
+
     #[prop_or_default]
     pub rom_size: usize,
-    
+
     #[prop_or(AttrValue::from("Unknown"))]
     pub cart_type: AttrValue,
-    
+
     #[prop_or_default]
     pub saveable: bool,
-    
+
     #[prop_or(AttrValue::from("Unknown"))]
     pub pallette: AttrValue,
 }
@@ -28,7 +27,7 @@ pub fn Panel(props: &InfoProps) -> Html {
     // A callback to show content of clicked tab, and hide the rest
     let cb = Callback::from(move |tab: String| {
         let tabs = document().get_elements_by_class_name("panel-content");
-        
+
         for i in 0..tabs.length() {
             if let Some(tab) = tabs.item(i) {
                 log!(tab.id());
@@ -52,7 +51,7 @@ pub fn Panel(props: &InfoProps) -> Html {
                 <div class="panel-button-row">
 
                     <input
-                        class="panel-input" 
+                        class="panel-input"
                         onclick={move |_| { info_cb.emit("info".to_string()) }}
                         type="radio"
                         name="tabs"
@@ -62,8 +61,8 @@ pub fn Panel(props: &InfoProps) -> Html {
                     />
                     <label for="info-tab" class="panel-buttons">{"Info"}</label>
 
-                    <input 
-                        class="panel-input" 
+                    <input
+                        class="panel-input"
                         onclick={move |_| { about_cb.emit("about".to_string()) }}
                         type="radio"
                         name="tabs"
@@ -88,7 +87,7 @@ pub fn Panel(props: &InfoProps) -> Html {
                         {"Console: "}
                         <span style="float:right;">
                             {if props.is_cgb { "Gameboy Colour" } else { "Gameboy Classic" }}
-                        </span>        
+                        </span>
                     </p>
                     <p>
                         {"ROM Name: "}
@@ -140,10 +139,10 @@ fn About() -> Html {
         <>
             <p>{"A Gameboy emulator built in Rust and delivered to the web using WebAssembly and Yew."}</p>
             <p>{"Link to repository: "}
-                <a 
-                    href="https://github.com/0xNathanW/gameboy" 
+                <a
+                    href="https://github.com/0xNathanW/gameboy"
                     target="_blank"
-                    rel="noopener noreferrer"    
+                    rel="noopener noreferrer"
                 >{"github.com/0xNathanW/gameboy"}</a>
             </p>
             <p>{"TODO (hopefully):"}</p>

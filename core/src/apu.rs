@@ -1,8 +1,8 @@
+use crate::{bus::MemoryBus, clock::Clock};
 use blip_buf::BlipBuf;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use crate::{clock::Clock, bus::MemoryBus};
 
 const CLOCK_FREQUENCY: u32 = 4_194_304;
 
@@ -10,7 +10,7 @@ const CLOCK_FREQUENCY: u32 = 4_194_304;
     Shamelessly taken from https://github.com/mohanson/gameboy.
     I am clueless with audio.
 */
- 
+
 #[derive(Clone, Eq, PartialEq)]
 enum Channel {
     Square1,
@@ -481,7 +481,8 @@ impl ChannelSquare {
             } else {
                 vol * -1
             };
-            self.blip.write_byte(self.blip.from + self.timer.period, ampl);
+            self.blip
+                .write_byte(self.blip.from + self.timer.period, ampl);
             self.idx = (self.idx + 1) % 8;
         }
     }
@@ -598,7 +599,8 @@ impl ChannelWave {
             } else {
                 i32::from(sample >> s)
             };
-            self.blip.write_byte(self.blip.from + self.timer.period, ampl);
+            self.blip
+                .write_byte(self.blip.from + self.timer.period, ampl);
             self.waveidx = (self.waveidx + 1) % 32;
         }
     }
@@ -706,7 +708,8 @@ impl ChannelNoise {
             } else {
                 i32::from(self.ve.volume) * -1
             };
-            self.blip.write_byte(self.blip.from + self.timer.period, ampl);
+            self.blip
+                .write_byte(self.blip.from + self.timer.period, ampl);
         }
     }
 }
@@ -904,9 +907,9 @@ impl APU {
 
 // Registers are ORed with this when reading
 const RD_MASK: [u8; 48] = [
-    0x80, 0x3f, 0x00, 0xff, 0xbf, 0xff, 0x3f, 0x00, 0xff, 0xbf, 0x7f, 0xff, 0x9f, 0xff, 0xbf, 0xff, 0xff, 0x00, 0x00,
-    0xbf, 0x00, 0x00, 0x70, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x80, 0x3f, 0x00, 0xff, 0xbf, 0xff, 0x3f, 0x00, 0xff, 0xbf, 0x7f, 0xff, 0x9f, 0xff, 0xbf, 0xff,
+    0xff, 0x00, 0x00, 0xbf, 0x00, 0x00, 0x70, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
 
 impl MemoryBus for APU {
@@ -920,14 +923,28 @@ impl MemoryBus for APU {
             0xff25 => self.reg.nrx1,
             0xff26 => {
                 let a = self.reg.nrx2 & 0xf0;
-                let b = if self.channel1.reg.borrow().get_trigger() { 1 } else { 0 };
-                let c = if self.channel2.reg.borrow().get_trigger() { 2 } else { 0 };
-                let d = if self.channel3.reg.borrow().get_trigger() && self.channel3.reg.borrow().get_dac_power() {
+                let b = if self.channel1.reg.borrow().get_trigger() {
+                    1
+                } else {
+                    0
+                };
+                let c = if self.channel2.reg.borrow().get_trigger() {
+                    2
+                } else {
+                    0
+                };
+                let d = if self.channel3.reg.borrow().get_trigger()
+                    && self.channel3.reg.borrow().get_dac_power()
+                {
                     4
                 } else {
                     0
                 };
-                let e = if self.channel4.reg.borrow().get_trigger() { 8 } else { 0 };
+                let e = if self.channel4.reg.borrow().get_trigger() {
+                    8
+                } else {
+                    0
+                };
                 a | b | c | d | e
             }
             0xff27..=0xff2f => 0x00,

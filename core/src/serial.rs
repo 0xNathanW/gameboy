@@ -1,9 +1,9 @@
-use std::rc::Rc;
-use std::cell::RefCell;
 use crate::{
     bus::MemoryBus,
-    intf::{Intf, InterruptSource},
+    intf::{InterruptSource, Intf},
 };
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Serial is for gameboy multiplayer functionality.
 // Since the emulator has no multiplayer it is used for testing puposes instead.
@@ -20,19 +20,23 @@ pub struct Serial {
     */
     control: u8,
 
-    callback: SerialCallback, 
-    
-    intf: Rc<RefCell<Intf>>
+    callback: SerialCallback,
+
+    intf: Rc<RefCell<Intf>>,
 }
 
 impl Serial {
-    pub fn new(intf: Rc<RefCell<Intf>>, callback: SerialCallback) -> Self { 
-        Self { intf, data: 0, control: 0, callback } 
+    pub fn new(intf: Rc<RefCell<Intf>>, callback: SerialCallback) -> Self {
+        Self {
+            intf,
+            data: 0,
+            control: 0,
+            callback,
+        }
     }
 }
 
 impl MemoryBus for Serial {
-    
     fn read_byte(&self, address: u16) -> u8 {
         match address {
             0xFF01 => self.data,
@@ -51,14 +55,15 @@ impl MemoryBus for Serial {
                         Some(callback) => {
                             (callback)(self.data);
                             self.data = b;
-                            self.intf.borrow_mut().set_interrupt(InterruptSource::Serial);
-                        },
-                        None => {},
+                            self.intf
+                                .borrow_mut()
+                                .set_interrupt(InterruptSource::Serial);
+                        }
+                        None => {}
                     }
                 }
-            },
+            }
             _ => unreachable!(),
         }
     }
 }
-

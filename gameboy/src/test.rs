@@ -2,19 +2,18 @@
 // Thus, make sure to run with "cargo test cpu_instructions -- --nocapture"
 #[test]
 fn cpu_instructions() {
+    use core::{cartridge, cpu::CPU};
     use std::path::Path;
-    use core::{cpu::CPU, cartridge};
 
     let test_path = Path::new("./test_roms/cpu_instrs/cpu_instrs.gb");
     assert!(test_path.exists());
 
-    let callback = |b: u8| { print!("{}", b as char); };
+    let callback = |b: u8| {
+        print!("{}", b as char);
+    };
     let cartridge = cartridge::open_cartridge(test_path).unwrap();
 
-    let mut cpu = CPU::new(
-        cartridge,
-        Some(Box::new(callback)),
-    );
+    let mut cpu = CPU::new(cartridge, Some(Box::new(callback)));
 
     let mut total_cycles = 0;
     while total_cycles < 127_605_866 {
@@ -26,40 +25,39 @@ fn cpu_instructions() {
     let mut sum = 0_u32;
 
     for idx in 0..cpu.mem.gpu.pixels.len() {
-                sum = sum.wrapping_add((cpu.mem.gpu.pixels[idx] as u32).wrapping_mul(idx as u32));
+        sum = sum.wrapping_add((cpu.mem.gpu.pixels[idx] as u32).wrapping_mul(idx as u32));
     }
     println!("\nchecksum = {}", sum);
 }
 
 // Basic b/w display test.
-#[test] 
+#[test]
 fn minifb_test() {
+    use minifb::{Scale, Window, WindowOptions};
     use std::thread;
-    use minifb::{Window, WindowOptions, Scale};
 
     let mut window = Window::new(
-        "test", 
-        core::SCREEN_WIDTH, 
+        "test",
+        core::SCREEN_WIDTH,
         core::SCREEN_HEIGHT,
         WindowOptions {
             scale: Scale::X8,
             ..Default::default()
-        }
-    ).unwrap();
+        },
+    )
+    .unwrap();
 
     let mut buf: Vec<u32> = vec![0; core::SCREEN_HEIGHT * core::SCREEN_WIDTH];
-    
-    let mut r: u8 = 0; let mut g: u8 = 0; let mut b: u8 = 0;
+
+    let mut r: u8 = 0;
+    let mut g: u8 = 0;
+    let mut b: u8 = 0;
 
     while window.is_open() {
-        
         r = r.wrapping_add(10);
         g = g.wrapping_add(10);
         b = b.wrapping_add(10);
-        let colour =
-            (r as u32) << 16 |
-            (g as u32) << 8  |
-            (b as u32);
+        let colour = (r as u32) << 16 | (g as u32) << 8 | (b as u32);
 
         for pix in buf.iter_mut().step_by(3) {
             *pix = colour;
@@ -70,16 +68,17 @@ fn minifb_test() {
     }
 }
 
-    
 // Should play a simmple beep sound.
 #[test]
 fn cpal_test() {
-    use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
+    use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
     let host = cpal::default_host();
-    let device = host.default_output_device().expect("failed to find output device.");
+    let device = host
+        .default_output_device()
+        .expect("failed to find output device.");
     println!("Output device: {}", device.name().unwrap());
-    
+
     let config = device.default_output_config().unwrap();
     println!("Default output config: {:?}", config);
     println!("{:?}", config.sample_format());
@@ -94,17 +93,19 @@ fn cpal_test() {
     };
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
-    let stream = device.build_output_stream(
-        &config.config(),
-        move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-            for frame in data.chunks_mut(channels) {
-                for sample in frame.iter_mut() {
-                    *sample = nxt_value();
+    let stream = device
+        .build_output_stream(
+            &config.config(),
+            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                for frame in data.chunks_mut(channels) {
+                    for sample in frame.iter_mut() {
+                        *sample = nxt_value();
+                    }
                 }
-            }
-        },
-        err_fn,
-    ).unwrap();
+            },
+            err_fn,
+        )
+        .unwrap();
 
     stream.play().unwrap();
     std::thread::sleep(std::time::Duration::from_millis(3000));

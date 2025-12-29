@@ -1,26 +1,21 @@
-use std::{
-    path::PathBuf, 
-    fs::File, 
-    io::Write,
-    time::SystemTime,
-};
+use std::{fs::File, io::Write, path::PathBuf, time::SystemTime};
 
-use super::{MemoryBus, Cartridge, Result};
 #[cfg(not(target_arch = "wasm32"))]
 use super::load_save;
+use super::{Cartridge, MemoryBus, Result};
 /*
 (max 2MByte ROM and/or 32KByte RAM and Timer)
-Beside for the ability to access up to 2MB ROM (18 banks), and 32KB RAM (4 banks), the MBC3 also includes a built-in Real Time Clock (RTC). 
+Beside for the ability to access up to 2MB ROM (18 banks), and 32KB RAM (4 banks), the MBC3 also includes a built-in Real Time Clock (RTC).
 The RTC requires an external 32.768 kHz Quartz Oscillator, and an external battery (if it should continue to tick when the Game Boy is turned off).
 */
 
 struct RealTimeClock {
-    seconds:    u8,
-    mintues:    u8,
-    hours:      u8,
-    dl:         u8,
-    dh:         u8,
-    pub zero:       u64,
+    seconds: u8,
+    mintues: u8,
+    hours: u8,
+    dl: u8,
+    dh: u8,
+    pub zero: u64,
 }
 
 impl RealTimeClock {
@@ -44,9 +39,9 @@ impl RealTimeClock {
                     hours: 0,
                     dl: 0,
                     dh: 0,
-                    zero
-                    })
-            },
+                    zero,
+                })
+            }
             None => None,
         }
     }
@@ -55,23 +50,24 @@ impl RealTimeClock {
         let duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
-            .as_secs() - self.zero;
-        
+            .as_secs()
+            - self.zero;
+
         self.seconds = (duration % 60) as u8;
         self.mintues = (duration / 60 % 60) as u8;
-        self.hours   = (duration / 3600 % 24) as u8;
+        self.hours = (duration / 3600 % 24) as u8;
 
         let days = (duration / 3600 / 24) as u16;
         self.dl = (days % 256) as u8;
         match days {
-            0x0 ..= 0xFF => {},
-            0x100 ..= 0x1FF => {
+            0x0..=0xFF => {}
+            0x100..=0x1FF => {
                 self.dh |= 1;
-            },
+            }
             _ => {
                 self.dh |= 1;
                 self.dh |= 0x80;
-            },
+            }
         }
     }
 }
@@ -89,7 +85,6 @@ The Clock Counter Registers
 */
 
 impl MemoryBus for RealTimeClock {
-    
     fn read_byte(&self, address: u16) -> u8 {
         match address {
             0x08 => self.seconds,
@@ -100,7 +95,7 @@ impl MemoryBus for RealTimeClock {
             _ => panic!("invalid address rtc (read): {:#2X}", address),
         }
     }
-    
+
     fn write_byte(&mut self, address: u16, b: u8) {
         match address {
             0x08 => self.seconds = b,
@@ -114,21 +109,25 @@ impl MemoryBus for RealTimeClock {
 }
 
 pub struct MBC3 {
-    rom:        Vec<u8>,
-    rom_bank:   usize,
+    rom: Vec<u8>,
+    rom_bank: usize,
 
-    ram:        Vec<u8>,
-    ram_bank:   usize,
+    ram: Vec<u8>,
+    ram_bank: usize,
     ram_enable: bool,
 
-    rtc:        Option<RealTimeClock>,
-    save_path:  Option<PathBuf>,
+    rtc: Option<RealTimeClock>,
+    save_path: Option<PathBuf>,
 }
 
 impl MBC3 {
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>, rtc_path: Option<PathBuf>) -> Self {
-        
+    pub fn new(
+        rom: Vec<u8>,
+        ram_size: usize,
+        save_path: Option<PathBuf>,
+        rtc_path: Option<PathBuf>,
+    ) -> Self {
         let ram = match save_path {
             Some(ref path) => load_save(path, ram_size),
             None => vec![0; ram_size],
@@ -146,8 +145,12 @@ impl MBC3 {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub fn new(rom: Vec<u8>, ram_size: usize, save_data: Option<Vec<u8>>, rtc_path: Option<PathBuf>) -> Self {
-        
+    pub fn new(
+        rom: Vec<u8>,
+        ram_size: usize,
+        save_data: Option<Vec<u8>>,
+        rtc_path: Option<PathBuf>,
+    ) -> Self {
         let ram = match save_data {
             Some(data) => data,
             None => vec![0; ram_size],
@@ -159,15 +162,16 @@ impl MBC3 {
             rom,
             rom_bank: 0,
             ram_enable: false,
-            save_path: None, 
+            save_path: None,
             rtc: RealTimeClock::new(rtc_path),
         }
     }
 }
 
 impl Cartridge for MBC3 {
-
-    fn len(&self) -> usize { self.rom.len() }
+    fn len(&self) -> usize {
+        self.rom.len()
+    }
 
     #[cfg(not(target_arch = "wasm32"))]
     fn save(&self) -> Result<()> {
@@ -177,14 +181,12 @@ impl Cartridge for MBC3 {
                 let mut file = File::create(path)?;
                 // Write real time clock.
                 if self.rtc.is_some() {
-                    file.write_all(
-                        &self.rtc.as_ref().unwrap().zero.to_be_bytes()
-                    )?;
+                    file.write_all(&self.rtc.as_ref().unwrap().zero.to_be_bytes())?;
                 }
                 // Write ram.
                 file.write_all(&self.ram)?;
                 Ok(())
-            },
+            }
         }
     }
 
@@ -195,18 +197,17 @@ impl Cartridge for MBC3 {
 }
 
 impl MemoryBus for MBC3 {
-    
     fn read_byte(&self, address: u16) -> u8 {
         match address {
             // 0000-3FFF - ROM Bank 00 (Read Only)
-            0x0000 ..= 0x3FFF => self.rom[address as usize],
+            0x0000..=0x3FFF => self.rom[address as usize],
             // 4000-7FFF - ROM Bank 01-7F (Read Only)
-            0x4000 ..= 0x7FFF => {
+            0x4000..=0x7FFF => {
                 let offset = 0x4000 * self.rom_bank;
                 self.rom[offset + (address as usize - 0x4000)]
-            },
+            }
             // A000-BFFF - RAM Bank 00-03, if any (Read/Write)
-            0xA000 ..= 0xBFFF => {
+            0xA000..=0xBFFF => {
                 if self.ram_enable {
                     if self.ram_bank <= 3 {
                         let offset = self.ram_bank * 0x2000;
@@ -220,34 +221,34 @@ impl MemoryBus for MBC3 {
                 } else {
                     0
                 }
-            },
+            }
             _ => 0,
         }
     }
-    
+
     fn write_byte(&mut self, address: u16, b: u8) {
         match address {
             // 0000-1FFF - RAM and Timer Enable (Write Only)
-            0x0000 ..= 0x1FFF => self.ram_enable = b & 0xF == 0xA,
+            0x0000..=0x1FFF => self.ram_enable = b & 0xF == 0xA,
             // 2000-3FFF - ROM Bank Number (Write Only)
             // Whole 7 bits of the RAM Bank Number are written directly to this address.
-            0x2000 ..= 0x3FFF => {
+            0x2000..=0x3FFF => {
                 let n = b & 0b0111_1111;
                 let n = if n == 0 { 1 } else { n };
                 self.rom_bank = n as usize;
-            },
+            }
             // 4000-5FFF - RAM Bank Number - or - RTC Register Select (Write Only)
-            0x4000 ..= 0x5FFF => {
+            0x4000..=0x5FFF => {
                 let n = b & 0x0F;
                 self.ram_bank = n as usize;
-            },
+            }
             // 6000-7FFF - Latch Clock Data (Write Only)
-            0x6000 ..= 0x7FFF => {
+            0x6000..=0x7FFF => {
                 if b & 1 != 0 && self.rtc.is_some() {
                     self.rtc.as_mut().unwrap().step();
                 }
-            },
-            0xA000 ..= 0xBFFF => {
+            }
+            0xA000..=0xBFFF => {
                 if self.ram_enable {
                     if self.ram_bank <= 3 {
                         let offset = 0x2000 * self.ram_bank;
@@ -255,12 +256,12 @@ impl MemoryBus for MBC3 {
                     } else {
                         match &mut self.rtc {
                             Some(rtc) => rtc.write_byte(address, b),
-                            None => {},
+                            None => {}
                         }
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }

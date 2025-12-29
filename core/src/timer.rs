@@ -1,11 +1,11 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use crate::{
     bit::Bit,
     bus::MemoryBus,
     clock::Clock,
-    intf::{Intf, InterruptSource},
+    intf::{InterruptSource, Intf},
 };
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Default)]
 pub struct Timer {
@@ -13,12 +13,12 @@ pub struct Timer {
     // Incremented at rate of 16_384 Hz.
     // Reset when write or stop instruction.
     divider: u8,
-    
+
     // FF05 - Timer counter (R/W).
     // Incremented at clock freq specified by TAC.
     // When overflow, reset to value in TMA.
     counter: u8,
-    
+
     // FF06 - Timer modulo (R/W).
     // Holds value to set TIMA when reset.
     modulo: u8,
@@ -36,11 +36,10 @@ pub struct Timer {
     div_clock: Clock,
     mod_clock: Clock,
 
-    intf:   Rc<RefCell<Intf>>
+    intf: Rc<RefCell<Intf>>,
 }
 
 impl MemoryBus for Timer {
-
     fn read_byte(&self, address: u16) -> u8 {
         match address {
             0xFF04 => self.divider,
@@ -48,25 +47,27 @@ impl MemoryBus for Timer {
             0xFF06 => self.modulo,
             0xFF07 => {
                 let mut b: u8 = 0;
-                if self.enable { b.set(2) };
+                if self.enable {
+                    b.set(2)
+                };
                 match self.mod_clock.period {
                     1024 => b.set(0),
-                    16   => b.set(1),
-                    64   => b.set(2),
-                    256  => b.set(3),
+                    16 => b.set(1),
+                    64 => b.set(2),
+                    256 => b.set(3),
                     _ => unreachable!(),
                 }
                 b
-            },
+            }
             _ => unreachable!(),
         }
     }
 
     fn write_byte(&mut self, address: u16, b: u8) {
         match address {
-            0xFF04 => { self.divider = b },
-            0xFF05 => { self.counter = b },
-            0xFF06 => { self.modulo = b },
+            0xFF04 => self.divider = b,
+            0xFF05 => self.counter = b,
+            0xFF06 => self.modulo = b,
             0xFF07 => {
                 self.enable = b.bit(2);
                 self.mod_clock.period = match b & 0b11 {
@@ -74,7 +75,7 @@ impl MemoryBus for Timer {
                     1 => 16,
                     2 => 64,
                     3 => 256,
-                    _ => unreachable!(), 
+                    _ => unreachable!(),
                 }
             }
             _ => unreachable!(),
@@ -83,7 +84,6 @@ impl MemoryBus for Timer {
 }
 
 impl Timer {
-    
     pub fn new(intf: Rc<RefCell<Intf>>) -> Self {
         Self {
             div_clock: Clock::new(256),
@@ -95,7 +95,7 @@ impl Timer {
 
     pub fn update(&mut self, cycles: u32) {
         self.divider = self.divider.wrapping_add(self.div_clock.tick(cycles) as u8);
-        
+
         if self.enable {
             for _ in 0..self.mod_clock.tick(cycles) {
                 self.counter = self.counter.wrapping_add(1);
@@ -104,7 +104,6 @@ impl Timer {
                     self.counter = self.modulo;
                     self.intf.borrow_mut().set_interrupt(InterruptSource::Timer);
                 }
-
             }
         }
     }

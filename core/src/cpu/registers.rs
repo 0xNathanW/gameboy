@@ -1,33 +1,37 @@
 use std::fmt::Debug;
 
 // CPU registers.
-// Registers af, bc, de and hl can be combined 
+// Registers af, bc, de and hl can be combined
 // to form a 16-bit register pair.
 #[derive(Default)]
 pub struct Registers {
-    pub a:  u8,      
-    f:      u8,      // Flags.
-    pub b:  u8,
-    pub c:  u8,
-    pub d:  u8,
-    pub e:  u8,
-    pub h:  u8,
-    pub l:  u8,
-    
-    pub sp: u16,    // Stack pointer.
-    pub pc: u16,    // Program counter.
+    pub a: u8,
+    f: u8, // Flags.
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub h: u8,
+    pub l: u8,
+
+    pub sp: u16, // Stack pointer.
+    pub pc: u16, // Program counter.
 }
 
-pub enum Flag { Z, N, H, C }
+pub enum Flag {
+    Z,
+    N,
+    H,
+    C,
+}
 
 // Flags implemented in bitmask.
-const ZERO_FLAG: u8         = 0b1000_0000;  
-const SUBTRACT_FLAG: u8     = 0b0100_0000;
-const HALF_CARRY_FLAG: u8   = 0b0010_0000;
-const CARRY_FLAG: u8        = 0b0001_0000;
+const ZERO_FLAG: u8 = 0b1000_0000;
+const SUBTRACT_FLAG: u8 = 0b0100_0000;
+const HALF_CARRY_FLAG: u8 = 0b0010_0000;
+const CARRY_FLAG: u8 = 0b0001_0000;
 
 impl Registers {
-
     pub fn new() -> Self {
         let mut reg = Self {
             sp: 0xFFFE,
@@ -58,7 +62,7 @@ impl Registers {
     pub fn get_hl(&self) -> u16 {
         (self.h as u16) << 8 | (self.l as u16)
     }
-    
+
     // Setters for 16-bit registers.
     pub fn set_af(&mut self, value: u16) {
         self.a = (value >> 8) as u8;
@@ -82,26 +86,52 @@ impl Registers {
 
     pub fn get_flag(&self, flag: Flag) -> bool {
         match flag {
-            Flag::Z =>  self.f & ZERO_FLAG != 0,
-            Flag::N =>  self.f & SUBTRACT_FLAG != 0,
-            Flag::H =>  self.f & HALF_CARRY_FLAG != 0,
-            Flag::C =>  self.f & CARRY_FLAG != 0,
+            Flag::Z => self.f & ZERO_FLAG != 0,
+            Flag::N => self.f & SUBTRACT_FLAG != 0,
+            Flag::H => self.f & HALF_CARRY_FLAG != 0,
+            Flag::C => self.f & CARRY_FLAG != 0,
         }
     }
 
     pub fn set_flag(&mut self, flag: Flag, value: bool) {
         match flag {
-            Flag::Z =>  self.f = if value { self.f | ZERO_FLAG }        else { self.f & !ZERO_FLAG },
-            Flag::N =>  self.f = if value { self.f | SUBTRACT_FLAG }    else { self.f & !SUBTRACT_FLAG },
-            Flag::H =>  self.f = if value { self.f | HALF_CARRY_FLAG }  else { self.f & !HALF_CARRY_FLAG },
-            Flag::C =>  self.f = if value { self.f | CARRY_FLAG }       else { self.f & !CARRY_FLAG },
+            Flag::Z => {
+                self.f = if value {
+                    self.f | ZERO_FLAG
+                } else {
+                    self.f & !ZERO_FLAG
+                }
+            }
+            Flag::N => {
+                self.f = if value {
+                    self.f | SUBTRACT_FLAG
+                } else {
+                    self.f & !SUBTRACT_FLAG
+                }
+            }
+            Flag::H => {
+                self.f = if value {
+                    self.f | HALF_CARRY_FLAG
+                } else {
+                    self.f & !HALF_CARRY_FLAG
+                }
+            }
+            Flag::C => {
+                self.f = if value {
+                    self.f | CARRY_FLAG
+                } else {
+                    self.f & !CARRY_FLAG
+                }
+            }
         }
     }
 }
 
 impl Debug for Registers {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "Registers {{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Registers {{
                 af: {:#06X},
                 bc: {:#06X},
                 de: {:#06X},
@@ -109,19 +139,26 @@ impl Debug for Registers {
                 flags - Z: {}, N: {}, H: {}, C: {},
                 sp: {:#06X},
                 pc: {:#06X},
-            }}", 
-            self.get_af(), self.get_bc(), self.get_de(), self.get_hl(),
-            self.get_flag(Flag::Z), self.get_flag(Flag::N), 
-            self.get_flag(Flag::H), self.get_flag(Flag::C),
-            self.sp, self.pc
-        )}
+            }}",
+            self.get_af(),
+            self.get_bc(),
+            self.get_de(),
+            self.get_hl(),
+            self.get_flag(Flag::Z),
+            self.get_flag(Flag::N),
+            self.get_flag(Flag::H),
+            self.get_flag(Flag::C),
+            self.sp,
+            self.pc
+        )
+    }
 }
 
 #[cfg(test)]
 mod test {
 
+    use super::Flag::{H, N, Z};
     use super::Registers;
-    use super::Flag::{Z, H, N};
 
     #[test]
     fn new() {
@@ -135,7 +172,7 @@ mod test {
     #[test]
     fn combined_registers() {
         let mut reg = Registers::new();
-        
+
         reg.a = 0b00000001;
         reg.f = 0b00000010;
         assert_eq!(reg.get_af(), 0b0000_0001_0000_0010);
@@ -162,4 +199,3 @@ mod test {
         assert!(!reg.get_flag(N));
     }
 }
-

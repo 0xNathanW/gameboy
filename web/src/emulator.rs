@@ -1,4 +1,8 @@
-use core::{cpu::CPU, cartridge::{open_cartridge, Cartridge}, keypad::GbKey};
+use core::{
+    cartridge::{open_cartridge, Cartridge},
+    cpu::CPU,
+    keypad::GbKey,
+};
 
 pub const DEMO_DATA: &'static [u8] = include_bytes!("../pocket.gb");
 
@@ -12,7 +16,6 @@ impl Default for Emulator {
 }
 
 impl Emulator {
-
     pub fn new(rom_data: Box<dyn Cartridge>) -> Self {
         Self(CPU::new(rom_data, None))
     }
@@ -42,4 +45,3 @@ impl Emulator {
         self.0.mem.gpu.set_colours(palette);
     }
 }
-
