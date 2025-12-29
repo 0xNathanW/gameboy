@@ -21,7 +21,7 @@ mod test;
 #[derive(Parser)]
 #[command(author = "NathanW", about = "A Rust powered Gameboy emulator.")]
 struct Args {
-    #[arg(short, long, help = "Path to rom")]
+    #[arg(help = "Path to rom")]
     path: String,
 
     #[arg(short = 'x', long, help = "Display scale factor")]
