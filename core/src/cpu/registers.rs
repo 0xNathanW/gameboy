@@ -157,11 +157,13 @@ impl Debug for Registers {
 #[cfg(test)]
 mod test {
 
-    use super::Flag::{H, N, Z};
-    use super::Registers;
+    use super::{
+        Flag::{H, N, Z},
+        Registers,
+    };
 
     #[test]
-    fn new() {
+    fn inital_state() {
         let reg = Registers::new();
         assert_eq!(reg.get_af(), 0x01B0);
         assert_eq!(reg.get_bc(), 0x0013);
