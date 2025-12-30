@@ -77,14 +77,14 @@ impl MemoryBus for LCDC {
 
     fn write_byte(&mut self, address: u16, b: u8) {
         assert_eq!(address, 0xFF40);
-        self.lcd_enable = b.bit(7);
-        self.window_tilemap = if b.bit(6) { 0x9C00 } else { 0x9800 };
-        self.window_enable = b.bit(5);
-        self.bg_window_tilemap = if b.bit(4) { 0x8000 } else { 0x8800 };
-        self.bg_tilemap = if b.bit(3) { 0x9C00 } else { 0x9800 };
-        self.sprite_size = if b.bit(2) { 16 } else { 8 };
-        self.sprite_enable = b.bit(1);
-        self.bg_window_enable = b.bit(0);
+        self.lcd_enable = b.get(7);
+        self.window_tilemap = if b.get(6) { 0x9C00 } else { 0x9800 };
+        self.window_enable = b.get(5);
+        self.bg_window_tilemap = if b.get(4) { 0x8000 } else { 0x8800 };
+        self.bg_tilemap = if b.get(3) { 0x9C00 } else { 0x9800 };
+        self.sprite_size = if b.get(2) { 16 } else { 8 };
+        self.sprite_enable = b.get(1);
+        self.bg_window_enable = b.get(0);
     }
 }
 

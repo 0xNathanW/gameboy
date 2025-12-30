@@ -340,10 +340,10 @@ impl GPU {
                 } else {
                     0xFF
                 },
-            below_bg: attr.bit(7),
-            y_flip: attr.bit(6),
-            x_flip: attr.bit(5),
-            is_palette_1: attr.bit(4),
+            below_bg: attr.get(7),
+            y_flip: attr.get(6),
+            x_flip: attr.get(5),
+            is_palette_1: attr.get(4),
         }
     }
 

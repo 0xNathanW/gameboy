@@ -69,7 +69,7 @@ impl MemoryBus for Timer {
             0xFF05 => self.counter = b,
             0xFF06 => self.modulo = b,
             0xFF07 => {
-                self.enable = b.bit(2);
+                self.enable = b.get(2);
                 self.mod_clock.period = match b & 0b11 {
                     0 => 1024,
                     1 => 16,

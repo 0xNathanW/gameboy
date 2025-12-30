@@ -67,10 +67,10 @@ impl MemoryBus for STAT {
     // mode flag and ly_compare=ly flag read only
     fn write_byte(&mut self, address: u16, b: u8) {
         assert_eq!(address, 0xFF41);
-        self.lyc_interrupt = b.bit(6);
-        self.oam_interrupt = b.bit(5);
-        self.vblank_interrupt = b.bit(4);
-        self.hblank_interrupt = b.bit(3);
+        self.lyc_interrupt = b.get(6);
+        self.oam_interrupt = b.get(5);
+        self.vblank_interrupt = b.get(4);
+        self.hblank_interrupt = b.get(3);
     }
 }
 

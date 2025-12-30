@@ -7,7 +7,8 @@ pub enum InterruptSource {
     Serial = 0b00001000,
     Keypad = 0b00010000,
 }
-// Info on interrupts - http://www.codeslinger.co.uk/pages/projects/gameboy/interupts.html
+
+// Byte in memory for signalling interrupts.
 #[derive(Clone, Default)]
 pub struct Intf(u8);
 
