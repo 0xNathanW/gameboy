@@ -44,3 +44,4 @@ web/Cargo.lock
 web/bin/
 web/pkg/
 web/wasm-pack.log
+notes.md
