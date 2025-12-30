@@ -108,3 +108,73 @@ impl Timer {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn new_timer() -> Timer {
+        Timer::new(Rc::new(RefCell::new(Intf::new())))
+    }
+
+    #[test]
+    fn divider_increments() {
+        let mut timer = new_timer();
+        // Divider clock has period 256, so after 256 cycles divider should increment
+        timer.update(256);
+        assert_eq!(timer.read_byte(0xFF04), 1);
+
+        timer.update(512); // 2 periods
+        assert_eq!(timer.read_byte(0xFF04), 3);
+    }
+
+    #[test]
+    fn counter_disabled() {
+        let mut timer = new_timer();
+        timer.write_byte(0xFF05, 0); // Set counter to 0
+
+        // Counter should not change
+        timer.update(10000);
+        assert_eq!(timer.read_byte(0xFF05), 0);
+    }
+
+    #[test]
+    fn counter_enabled() {
+        let mut timer = new_timer();
+        // Enable timer with period 16
+        timer.write_byte(0xFF07, 0b101);
+
+        timer.update(16);
+        assert_eq!(timer.read_byte(0xFF05), 1);
+
+        timer.update(32);
+        assert_eq!(timer.read_byte(0xFF05), 3);
+    }
+
+    #[test]
+    fn counter_overflow_reset() {
+        let mut timer = new_timer();
+        timer.write_byte(0xFF06, 0x50); // Set modulo to 0x50
+        timer.write_byte(0xFF05, 0xFF); // Set counter near overflow
+        timer.write_byte(0xFF07, 0b101); // Enable with fast clock
+
+        // After 16 cycles, counter overflows: 0xFF + 1 = 0x00, then reset back to 0x50
+        timer.update(16);
+        assert_eq!(timer.read_byte(0xFF05), 0x50);
+    }
+
+    #[test]
+    fn overflow_interrupt() {
+        let intf = Rc::new(RefCell::new(Intf::new()));
+        let mut timer = Timer::new(intf.clone());
+
+        // Trigger overflow
+        timer.write_byte(0xFF05, 0xFF);
+        timer.write_byte(0xFF07, 0b101);
+        assert_eq!(intf.borrow().read_byte(0xFF0F), 0);
+        timer.update(16);
+
+        // Timer interrupt flag set
+        assert_eq!(intf.borrow().read_byte(0xFF0F) & 0b100, 0b100);
+    }
+}
