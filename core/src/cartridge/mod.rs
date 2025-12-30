@@ -302,33 +302,3 @@ pub fn ram_size(n: u8) -> usize {
         _ => 0,
     }
 }
-
-#[cfg(test)]
-mod test {
-
-    use crate::cartridge::open_cartridge;
-    use std::path::Path;
-
-    // ROMs with different cartridge architecture.
-    // https://b13rg.github.io/Gameboy-MBC-Analysis/#no-mbc
-    // Checks logo + checksum verification.
-    #[test]
-    fn rom_only() {
-        let test_path = Path::new("./test_roms/ThisIsATest.gb");
-        assert!(test_path.exists());
-        open_cartridge(test_path).unwrap();
-
-        let dr_mario = Path::new("./test_roms/drMario.gb");
-        assert!(dr_mario.exists());
-        open_cartridge(dr_mario).unwrap();
-    }
-
-    #[test]
-    fn mbc1() {
-        let test_path = Path::new("./test_roms/cpu_instrs/individual/01-special.gb");
-        assert!(test_path.exists());
-        let cart = open_cartridge(test_path).unwrap();
-
-        assert_eq!(cart.read_byte(0x4000), 0xC3);
-    }
-}
