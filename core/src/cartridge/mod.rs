@@ -4,7 +4,6 @@ use std::{
     io::{ErrorKind, Read},
     path::{Path, PathBuf},
 };
-use thiserror::Error;
 
 mod mbc1;
 mod mbc2;
@@ -28,7 +27,7 @@ fn load_save(save_path: &PathBuf, ram_size: usize) -> Vec<u8> {
     }
 }
 
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum CartError {
     #[error("nintendo logo in cartridge is incorrect")]
     IncorrectLogo,
