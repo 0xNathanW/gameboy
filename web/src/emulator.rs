@@ -1,4 +1,4 @@
-use core::{
+use gameboy_core::{
     cartridge::{open_cartridge, Cartridge},
     cpu::CPU,
     keypad::GbKey,

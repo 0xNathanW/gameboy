@@ -7,7 +7,7 @@ use cpal::{
 use minifb::{Key, Scale, Window, WindowOptions};
 use std::{ffi::OsStr, path::Path};
 
-use core::{
+use gameboy_core::{
     apu::APU,
     cartridge,
     cpu::CPU,

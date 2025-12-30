@@ -2,7 +2,7 @@
 // Thus, make sure to run with "cargo test cpu_instructions -- --nocapture"
 #[test]
 fn cpu_instructions() {
-    use core::{cartridge, cpu::CPU};
+    use gameboy_core::{cartridge, cpu::CPU};
     use std::path::Path;
 
     let test_path = Path::new("./test_roms/cpu_instrs/cpu_instrs.gb");
@@ -38,8 +38,8 @@ fn minifb_test() {
 
     let mut window = Window::new(
         "test",
-        core::SCREEN_WIDTH,
-        core::SCREEN_HEIGHT,
+        gameboy_core::SCREEN_WIDTH,
+        gameboy_core::SCREEN_HEIGHT,
         WindowOptions {
             scale: Scale::X8,
             ..Default::default()
@@ -47,7 +47,7 @@ fn minifb_test() {
     )
     .unwrap();
 
-    let mut buf: Vec<u32> = vec![0; core::SCREEN_HEIGHT * core::SCREEN_WIDTH];
+    let mut buf: Vec<u32> = vec![0; gameboy_core::SCREEN_HEIGHT * gameboy_core::SCREEN_WIDTH];
 
     let mut r: u8 = 0;
     let mut g: u8 = 0;
