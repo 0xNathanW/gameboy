@@ -92,9 +92,43 @@ impl MemoryBus for KeyPad {
         }
     }
 
-    // The only keypad write is to switch which keys are read.
+    // The only keypad write is to switch which keys are read (directions or actions).
     fn write_byte(&mut self, address: u16, b: u8) {
         assert_eq!(address, 0xFF00);
         self.select = b & 0b0011_0000;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn new_keypad() -> KeyPad {
+        KeyPad::new(Rc::new(RefCell::new(Intf::new())))
+    }
+
+    #[test]
+    fn direction_action_independence() {
+        let mut keypad = new_keypad();
+
+        // Action button registers
+        keypad.key_press(GbKey::A);
+        keypad.write_byte(0xFF00, 0x10);
+        assert_eq!(keypad.read_byte(0xFF00), 0b1110);
+
+        // Direction register unaffected
+        keypad.write_byte(0xFF00, 0x20);
+        assert_eq!(keypad.read_byte(0xFF00), 0b1111);
+    }
+
+    #[test]
+    fn interrupt_triggered_on_key_press() {
+        let intf = Rc::new(RefCell::new(Intf::new()));
+        let mut keypad = KeyPad::new(intf.clone());
+        assert_eq!(intf.borrow().read_byte(0xFF0F), 0);
+        keypad.key_press(GbKey::Start);
+
+        // Keypad interrupt flag (bit 4) should be set
+        assert_eq!(intf.borrow().read_byte(0xFF0F) & 0b10000, 0b10000);
     }
 }
