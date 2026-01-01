@@ -102,7 +102,7 @@ fn main() -> Result<()> {
         (Key::Enter, GbKey::Start),
     ];
 
-    while display.is_open() {
+    while display.is_open() && !display.is_key_down(Key::Q) {
         let cycles = gameboy.step();
         gameboy.update(cycles);
 
