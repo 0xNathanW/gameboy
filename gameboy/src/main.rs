@@ -114,9 +114,9 @@ fn main() -> Result<()> {
 
         for (input, key) in keys.iter() {
             if display.is_key_down(*input) {
-                gameboy.key_down(key.clone());
+                gameboy.key_down(*key);
             } else {
-                gameboy.key_up(key.clone());
+                gameboy.key_up(*key);
             }
         }
     }

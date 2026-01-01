@@ -16,7 +16,7 @@ use std::{cell::RefCell, rc::Rc};
 // Bit 1 - P11 Input Left  or Button B (0=Pressed) (Read Only)
 // Bit 0 - P10 Input Right or Button A (0=Pressed) (Read Only)
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum GbKey {
     Right,
     Left,
