@@ -9,9 +9,6 @@ use std::{ffi::OsStr, path::Path};
 
 use gameboy_core::{cartridge, Gameboy, GbKey, SCREEN_HEIGHT, SCREEN_WIDTH};
 
-#[cfg(test)]
-mod test;
-
 #[derive(Parser)]
 #[command(author = "NathanW", about = "A Rust powered Gameboy emulator.")]
 struct Args {
