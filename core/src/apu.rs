@@ -827,10 +827,10 @@ impl APU {
             self.channel2.blip.data.end_frame(self.timer.period);
             self.channel3.blip.data.end_frame(self.timer.period);
             self.channel4.blip.data.end_frame(self.timer.period);
-            self.channel1.blip.from -= self.timer.period;
-            self.channel2.blip.from -= self.timer.period;
-            self.channel3.blip.from -= self.timer.period;
-            self.channel4.blip.from -= self.timer.period;
+            self.channel1.blip.from = self.channel1.blip.from.saturating_sub(self.timer.period);
+            self.channel2.blip.from = self.channel2.blip.from.saturating_sub(self.timer.period);
+            self.channel3.blip.from = self.channel3.blip.from.saturating_sub(self.timer.period);
+            self.channel4.blip.from = self.channel4.blip.from.saturating_sub(self.timer.period);
             self.mix();
         }
     }
