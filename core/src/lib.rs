@@ -1,14 +1,11 @@
 #![allow(clippy::upper_case_acronyms)]
 
 #[cfg(feature = "audio")]
-pub mod apu;
-pub mod bus;
-pub mod cartridge;
-pub mod cpu;
-pub mod keypad;
-
-pub const SCREEN_WIDTH: usize = 160;
-pub const SCREEN_HEIGHT: usize = 144;
+mod apu;
+mod bus;
+mod cpu;
+mod gameboy;
+mod keypad;
 
 mod bit;
 mod clock;
@@ -17,3 +14,10 @@ mod intf;
 mod memory;
 mod serial;
 mod timer;
+
+pub mod cartridge;
+pub use gameboy::Gameboy;
+pub use keypad::GbKey;
+
+pub const SCREEN_WIDTH: usize = 160;
+pub const SCREEN_HEIGHT: usize = 144;

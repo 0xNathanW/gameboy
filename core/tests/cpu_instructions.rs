@@ -1,4 +1,4 @@
-use gameboy_core::{cartridge, cpu::CPU};
+use gameboy_core::{cartridge, Gameboy};
 use std::{cell::RefCell, path::Path, rc::Rc};
 
 /*
@@ -30,12 +30,12 @@ fn cpu_instructions() {
     };
 
     let cartridge = cartridge::open_cartridge(rom_path).expect("Failed to load test ROM");
-    let mut cpu = CPU::new(cartridge, Some(Box::new(callback)));
+    let mut gameboy = Gameboy::new(cartridge, Some(Box::new(callback)));
 
     let mut cycles_run = 0;
     while cycles_run < BLARGG_INSTRUCTION_TEST_CYCLES {
-        let cycles = cpu.tick();
-        cpu.mem.update(cycles);
+        let cycles = gameboy.tick();
+        gameboy.update(cycles);
         cycles_run += cycles as u64;
     }
 

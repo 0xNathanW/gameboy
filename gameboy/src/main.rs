@@ -7,13 +7,7 @@ use cpal::{
 use minifb::{Key, Scale, Window, WindowOptions};
 use std::{ffi::OsStr, path::Path};
 
-use gameboy_core::{
-    apu::APU,
-    cartridge,
-    cpu::CPU,
-    keypad::GbKey,
-    {SCREEN_HEIGHT, SCREEN_WIDTH},
-};
+use gameboy_core::{cartridge, Gameboy, GbKey, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 #[cfg(test)]
 mod test;
@@ -90,10 +84,10 @@ fn main() -> Result<()> {
         None
     };
 
-    let mut cpu = CPU::new(cartridge, callback);
+    let mut gameboy = Gameboy::new(cartridge, callback);
 
     let audio_stream = if args.audio {
-        initialise_audio(&mut cpu).context("failed to initialise audio")?
+        initialise_audio(&mut gameboy).context("failed to initialise audio")?
     } else {
         None
     };
@@ -110,25 +104,21 @@ fn main() -> Result<()> {
     ];
 
     while display.is_open() {
-        let cycles = cpu.step();
-        cpu.mem.update(cycles);
+        let cycles = gameboy.step();
+        gameboy.update(cycles);
 
-        if cpu.mem.gpu.check_updated() {
+        if gameboy.display_updated() {
             display
-                .update_with_buffer(cpu.mem.gpu.pixels.as_ref(), SCREEN_WIDTH, SCREEN_HEIGHT)
+                .update_with_buffer(gameboy.display_buffer(), SCREEN_WIDTH, SCREEN_HEIGHT)
                 .context("failed to update display")?;
         }
 
         for (input, key) in keys.iter() {
             if display.is_key_down(*input) {
-                cpu.mem.keypad.key_press(key.clone());
+                gameboy.key_down(key.clone());
             } else {
-                cpu.mem.keypad.key_release(key.clone());
+                gameboy.key_up(key.clone());
             }
-        }
-
-        if !cpu.flip() {
-            continue;
         }
     }
 
@@ -138,20 +128,21 @@ fn main() -> Result<()> {
     }
 
     // Save.
-    cpu.mem.save()?;
+    gameboy.save()?;
     Ok(())
 }
 
-fn initialise_audio(cpu: &mut CPU) -> Result<Option<cpal::Stream>> {
+fn initialise_audio(gameboy: &mut Gameboy) -> Result<Option<cpal::Stream>> {
     let device = cpal::default_host()
         .default_output_device()
         .context("failed to find audio output device.")?;
     let config = device.default_output_config()?;
     let err_fn = |err| eprintln!("an error occurred on audio stream: {}", err);
 
-    let apu = APU::power_up(config.sample_rate().0);
-    let stream_buffer = apu.buffer.clone();
-    cpu.mem.apu = Some(apu);
+    gameboy.enable_audio(config.sample_rate().0);
+    let stream_buffer = gameboy
+        .audio_buffer()
+        .context("failed to get audio buffer")?;
 
     let stream = device
         .build_output_stream(

@@ -1,8 +1,8 @@
+use emulator::Emulator;
 use gameboy_core::{
     cartridge::{open_cartridge, Cartridge},
-    keypad::GbKey,
+    GbKey,
 };
-use emulator::Emulator;
 use gloo::{
     dialogs::alert, events::EventListener, file::File, timers::callback::Interval, utils::document,
 };
@@ -310,7 +310,7 @@ impl App {
             }
         };
 
-        let clamped_arr = wasm_bindgen::Clamped(self.emulator.0.mem.gpu.pixels.as_slice());
+        let clamped_arr = wasm_bindgen::Clamped(self.emulator.display_buffer());
         let img_data = ImageData::new_with_u8_clamped_array(clamped_arr, 160).unwrap();
 
         ctx.put_image_data(&img_data, 0.0, 0.0).unwrap();

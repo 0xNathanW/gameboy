@@ -2,7 +2,7 @@
 // Thus, make sure to run with "cargo test cpu_instructions -- --nocapture"
 #[test]
 fn cpu_instructions() {
-    use gameboy_core::{cartridge, cpu::CPU};
+    use gameboy_core::{cartridge, Gameboy};
     use std::path::Path;
 
     let test_path = Path::new("./test_roms/cpu_instrs/cpu_instrs.gb");
@@ -13,19 +13,20 @@ fn cpu_instructions() {
     };
     let cartridge = cartridge::open_cartridge(test_path).unwrap();
 
-    let mut cpu = CPU::new(cartridge, Some(Box::new(callback)));
+    let mut gameboy = Gameboy::new(cartridge, Some(Box::new(callback)));
 
     let mut total_cycles = 0;
     while total_cycles < 127_605_866 {
-        let cycles = cpu.step();
-        cpu.mem.update(cycles);
+        let cycles = gameboy.step();
+        gameboy.update(cycles);
         total_cycles += cycles;
     }
 
+    let display_buffer = gameboy.display_buffer();
     let mut sum = 0_u32;
 
-    for idx in 0..cpu.mem.gpu.pixels.len() {
-        sum = sum.wrapping_add((cpu.mem.gpu.pixels[idx] as u32).wrapping_mul(idx as u32));
+    for idx in 0..display_buffer.len() {
+        sum = sum.wrapping_add((display_buffer[idx] as u32).wrapping_mul(idx as u32));
     }
     println!("\nchecksum = {}", sum);
 }
