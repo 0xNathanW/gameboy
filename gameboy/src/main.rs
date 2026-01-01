@@ -1,3 +1,5 @@
+// A simple frontend for the Gameboy core using minifb for display and cpal for audio.
+
 use anyhow::{ensure, Context, Result};
 use clap::Parser;
 use cpal::{
@@ -83,7 +85,7 @@ fn main() -> Result<()> {
 
     let mut gameboy = Gameboy::new(cartridge, callback);
 
-    let audio_stream = if args.audio {
+    let _audio_stream = if args.audio {
         initialise_audio(&mut gameboy).context("failed to initialise audio")?
     } else {
         None
@@ -119,11 +121,6 @@ fn main() -> Result<()> {
         }
     }
 
-    // Drop the audio stream if it exists.
-    if let Some(stream) = audio_stream {
-        drop(stream)
-    }
-
     // Save.
     gameboy.save()?;
     Ok(())
@@ -133,6 +130,7 @@ fn initialise_audio(gameboy: &mut Gameboy) -> Result<Option<cpal::Stream>> {
     let device = cpal::default_host()
         .default_output_device()
         .context("failed to find audio output device.")?;
+    println!("Using audio output device: {}", device.name()?);
     let config = device.default_output_config()?;
     let err_fn = |err| eprintln!("an error occurred on audio stream: {}", err);
 
@@ -156,6 +154,7 @@ fn initialise_audio(gameboy: &mut Gameboy) -> Result<Option<cpal::Stream>> {
             err_fn,
         )
         .context("failed to build audio stream")?;
+
     stream.play().context("failed to play audio stream")?;
     Ok(Some(stream))
 }
