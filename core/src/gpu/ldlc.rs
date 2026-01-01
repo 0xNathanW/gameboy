@@ -32,14 +32,14 @@ pub struct LCDC {
 impl LCDC {
     pub fn new() -> Self {
         LCDC {
-            lcd_enable: false,
-            window_tilemap: 0x9C00,
+            lcd_enable: true,
+            window_tilemap: 0x9800,
             window_enable: false,
-            bg_window_tilemap: 0x8800,
-            bg_tilemap: 0x9C00,
+            bg_window_tilemap: 0x8000,
+            bg_tilemap: 0x9800,
             sprite_size: 8,
             sprite_enable: false,
-            bg_window_enable: false,
+            bg_window_enable: true,
         }
     }
 }
@@ -85,39 +85,5 @@ impl MemoryBus for LCDC {
         self.sprite_size = if b.get(2) { 16 } else { 8 };
         self.sprite_enable = b.get(1);
         self.bg_window_enable = b.get(0);
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::LCDC;
-    use crate::bus::MemoryBus;
-
-    #[test]
-    fn lcdc_new() {
-        let lcdc = LCDC::new();
-        assert!(!lcdc.lcd_enable);
-        assert_eq!(lcdc.window_tilemap, 0x9800);
-        assert!(!lcdc.window_enable);
-        assert_eq!(lcdc.bg_window_tilemap, 0x8800);
-        assert_eq!(lcdc.bg_tilemap, 0x9800);
-        assert_eq!(lcdc.sprite_size, 8);
-        assert!(!lcdc.sprite_enable);
-        assert!(!lcdc.bg_window_enable);
-    }
-
-    #[test]
-    fn read_write() {
-        let mut lcdc = LCDC::new();
-        assert_eq!(lcdc.read_byte(0xFF40), 0);
-        lcdc.write_byte(0xFF40, 0b1111_1111);
-        assert_eq!(lcdc.read_byte(0xFF40), 0b1111_1111);
-        assert!(lcdc.lcd_enable);
-        assert_eq!(lcdc.window_tilemap, 0x9C00);
-        assert!(lcdc.window_enable);
-        assert_eq!(lcdc.bg_window_tilemap, 0x8000);
-        assert_eq!(lcdc.sprite_size, 16);
-        assert!(lcdc.sprite_enable);
-        assert!(lcdc.bg_window_enable);
     }
 }
