@@ -248,24 +248,63 @@ impl Component for App {
 
 impl App {
     fn render_frame(&mut self) {
-        let canvas = self.canvas.cast::<HtmlCanvasElement>().unwrap();
+        let Some(canvas) = self.canvas.cast::<HtmlCanvasElement>() else {
+            web_sys::console::error_1(&"render_frame: canvas NodeRef not bound".into());
+            return;
+        };
+
         let ctx = match &self.ctx {
             Some(ctx) => ctx,
             None => {
-                let ctx = canvas.get_context("2d").unwrap().unwrap();
-                let ctx = ctx.dyn_into::<web_sys::CanvasRenderingContext2d>().unwrap();
-                ctx.scale(DISPLAY_SCALE, DISPLAY_SCALE).unwrap();
+                let ctx = match canvas.get_context("2d") {
+                    Ok(Some(ctx)) => ctx,
+                    Ok(None) => {
+                        web_sys::console::error_1(&"render_frame: canvas context unavailable".into());
+                        return;
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(&format!("render_frame: get_context failed: {:?}", e).into());
+                        return;
+                    }
+                };
+
+                let Ok(ctx) = ctx.dyn_into::<CanvasRenderingContext2d>() else {
+                    web_sys::console::error_1(&"render_frame: context is not CanvasRenderingContext2d".into());
+                    return;
+                };
+
+                if let Err(e) = ctx.scale(DISPLAY_SCALE, DISPLAY_SCALE) {
+                    web_sys::console::error_1(&format!("render_frame: scale failed: {:?}", e).into());
+                    return;
+                }
+
                 self.ctx = Some(ctx);
-                self.ctx.as_ref().unwrap()
+                self.ctx.as_ref().expect("just assigned")
             }
         };
 
         let clamped_arr = wasm_bindgen::Clamped(self.emulator.display_buffer());
-        let img_data = ImageData::new_with_u8_clamped_array(clamped_arr, 160).unwrap();
+        let img_data = match ImageData::new_with_u8_clamped_array(clamped_arr, 160) {
+            Ok(data) => data,
+            Err(e) => {
+                web_sys::console::error_1(&format!("render_frame: ImageData creation failed: {:?}", e).into());
+                return;
+            }
+        };
 
-        ctx.put_image_data(&img_data, 0.0, 0.0).unwrap();
-        ctx.draw_image_with_html_canvas_element(&ctx.canvas().unwrap(), 0_f64, 0_f64)
-            .unwrap();
+        if let Err(e) = ctx.put_image_data(&img_data, 0.0, 0.0) {
+            web_sys::console::error_1(&format!("render_frame: put_image_data failed: {:?}", e).into());
+            return;
+        }
+
+        let Some(canvas_element) = ctx.canvas() else {
+            web_sys::console::error_1(&"render_frame: ctx.canvas() returned None".into());
+            return;
+        };
+
+        if let Err(e) = ctx.draw_image_with_html_canvas_element(&canvas_element, 0.0, 0.0) {
+            web_sys::console::error_1(&format!("render_frame: draw_image failed: {:?}", e).into());
+        }
     }
 }
 
