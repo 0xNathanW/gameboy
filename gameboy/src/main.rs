@@ -11,7 +11,7 @@ use std::{
     ffi::OsStr,
     fs::File,
     io::{Read, Write},
-    path::Path,
+    path::{Path, PathBuf},
     time::Instant,
 };
 
@@ -37,6 +37,12 @@ struct Args {
     #[arg(short, long, help = "Print serial write to stdout")]
     #[arg(default_value = "false")]
     serial: bool,
+
+    #[arg(long, help = "Path to save file (default: <rom>.sav)")]
+    save: Option<PathBuf>,
+
+    #[arg(long, help = "Path to RTC file (default: <rom>.rtc)")]
+    rtc: Option<PathBuf>,
 }
 
 // Copy of minifb::Scale such that it implements clap::ValueEnum.
@@ -79,12 +85,24 @@ fn main() -> Result<()> {
         "file provided does not have the extention '.gb'"
     );
 
-    let save_path = rom_path.with_extension("sav");
-    let rtc_path = rom_path.with_extension("rtc");
+    let save_path = args.save.unwrap_or_else(|| rom_path.with_extension("sav"));
+    let rtc_path = args.rtc.unwrap_or_else(|| rom_path.with_extension("rtc"));
 
     let rom_data = std::fs::read(rom_path).context("failed reading ROM file")?;
+
     let save_data = load_file(&save_path);
+    if save_data.is_some() {
+        println!("Loaded save file: {}", save_path.display());
+    } else {
+        println!("No save file found at: {}", save_path.display());
+    }
+
     let rtc_zero = load_rtc_zero(&rtc_path);
+    if rtc_zero.is_some() {
+        println!("Loaded RTC file: {}", rtc_path.display());
+    } else {
+        println!("No RTC file found at: {}", rtc_path.display());
+    }
 
     let cartridge = cartridge::open_cartridge(rom_data, save_data, rtc_zero)
         .context("failed loading cartridge")?;
@@ -178,6 +196,7 @@ fn main() -> Result<()> {
         File::create(&save_path)
             .and_then(|mut f| f.write_all(data))
             .context("failed to save game")?;
+        println!("Saved game to: {}", save_path.display());
     }
 
     // Save RTC zero if the cartridge has RTC.
@@ -185,6 +204,7 @@ fn main() -> Result<()> {
         File::create(&rtc_path)
             .and_then(|mut f| f.write_all(&rtc.to_le_bytes()))
             .context("failed to save RTC")?;
+        println!("Saved RTC to: {}", rtc_path.display());
     }
 
     Ok(())
