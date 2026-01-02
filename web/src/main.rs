@@ -12,23 +12,11 @@ use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlInputElement, Ima
 use yew::prelude::*;
 use yew::props;
 
-const FRAME_TIME: u32 = 16; // Approx 60 FPS.
-const SCALE: f64 = 4.0;
-const PALETTES: [(&str, [u32; 4]); 10] = [
-    ("Classic", [0xe0f8d0, 0x88c070, 0x346856, 0x081820]),
-    ("2Bit Demichrome", [0xe9efec, 0xa0a08b, 0x555568, 0x211e20]),
-    ("Ice Cream", [0xfff6d3, 0xf9a875, 0xeb6b6f, 0x7c3f58]),
-    ("Bicycle", [0xf0f0f0, 0x8f9bf6, 0xab4646, 0x161616]),
-    ("Lopsec", [0xc7c6c6, 0x7c6d80, 0x382843, 0x000000]),
-    ("Autumn Chill", [0xdad3af, 0xd58863, 0xc23a73, 0x2c1e74]),
-    ("Red Dead", [0xfffcfe, 0xff0015, 0x860020, 0x11070a]),
-    ("Blue Dream", [0xecf2cb, 0x98d8b1, 0x4b849a, 0x1f285d]),
-    ("Lollipop", [0xe6f2ef, 0xf783b0, 0x3f6d9e, 0x151640]),
-    ("Soviet", [0xe8d6c0, 0x92938d, 0xa1281c, 0x000000]),
-];
-
+mod constants;
 mod emulator;
 mod panel;
+
+use constants::*;
 
 fn main() {
     yew::Renderer::<App>::new().render();
@@ -36,24 +24,25 @@ fn main() {
 
 pub struct App {
     emulator: Emulator,
-    is_cgb: bool,
 
+    // ROM info
+    is_cgb: bool,
     rom_name: AttrValue,
     rom_size: usize,
     cart_type: AttrValue,
     saveable: bool,
 
-    pallette_idx: usize,
+    // UI state
+    palette_idx: usize,
+    paused: bool,
 
     canvas: NodeRef,
     ctx: Option<CanvasRenderingContext2d>,
-    // Dropping interval will stop it from ticking.
-    interval: Interval,
-    paused: bool,
-    // Dropping these listeners will remove them from the document.
+
+    // Events
+    _interval: Interval,
     _key_up_listen: EventListener,
     _key_down_listen: EventListener,
-
     file_reader: Option<gloo::file::callbacks::FileReader>,
 }
 
@@ -72,61 +61,29 @@ impl Component for App {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        // Update frame every 16ms.
-        let interval = {
+        let _interval = {
             let link = ctx.link().clone();
-            Interval::new(FRAME_TIME, move || {
+            Interval::new(FRAME_TIME_MS, move || {
                 link.send_message(Msg::Tick);
             })
         };
 
         // Callbacks for key events.
-        let on_key_down = {
-            let link = ctx.link().clone();
-            Callback::from(move |e: KeyboardEvent| {
-                match e.key().as_str() {
-                    "ArrowUp" => link.send_message(Msg::KeyDown(GbKey::Up)),
-                    "ArrowDown" => link.send_message(Msg::KeyDown(GbKey::Down)),
-                    "ArrowLeft" => link.send_message(Msg::KeyDown(GbKey::Left)),
-                    "ArrowRight" => link.send_message(Msg::KeyDown(GbKey::Right)),
-                    "z" => link.send_message(Msg::KeyDown(GbKey::A)),
-                    "x" => link.send_message(Msg::KeyDown(GbKey::B)),
-                    "Enter" => link.send_message(Msg::KeyDown(GbKey::Start)),
-                    "Shift" => link.send_message(Msg::KeyDown(GbKey::Select)),
-                    _ => return,
-                };
-            })
-        };
-
-        let on_key_up = {
-            let link = ctx.link().clone();
-            Callback::from(move |e: KeyboardEvent| {
-                match e.key().as_str() {
-                    "ArrowUp" => link.send_message(Msg::KeyUp(GbKey::Up)),
-                    "ArrowDown" => link.send_message(Msg::KeyUp(GbKey::Down)),
-                    "ArrowLeft" => link.send_message(Msg::KeyUp(GbKey::Left)),
-                    "ArrowRight" => link.send_message(Msg::KeyUp(GbKey::Right)),
-                    "z" => link.send_message(Msg::KeyUp(GbKey::A)),
-                    "x" => link.send_message(Msg::KeyUp(GbKey::B)),
-                    "Enter" => link.send_message(Msg::KeyUp(GbKey::Start)),
-                    "Shift" => link.send_message(Msg::KeyUp(GbKey::Select)),
-                    _ => return,
-                };
-            })
-        };
-
-        // Attach key listeners to document.
+        let on_key_down = create_key_callback(ctx, true);
+        let on_key_up = create_key_callback(ctx, false);
         let doc = document();
         let key_down = EventListener::new(&doc, "keydown", move |event| {
-            let key_event = event.clone().dyn_into::<KeyboardEvent>().unwrap();
-            if !key_event.repeat() {
-                on_key_down.emit(key_event);
+            if let Some(key_event) = event.clone().dyn_into::<KeyboardEvent>().ok() {
+                if !key_event.repeat() {
+                    on_key_down.emit(key_event);
+                }
             }
         });
         let key_up = EventListener::new(&doc, "keyup", move |event| {
-            let key_event = event.clone().dyn_into::<KeyboardEvent>().unwrap();
-            if !key_event.repeat() {
-                on_key_up.emit(key_event);
+            if let Some(key_event) = event.clone().dyn_into::<KeyboardEvent>().ok() {
+                if !key_event.repeat() {
+                    on_key_up.emit(key_event);
+                }
             }
         });
 
@@ -138,9 +95,9 @@ impl Component for App {
             saveable: false,
             cart_type: "ROM only".into(),
             canvas: NodeRef::default(),
-            pallette_idx: 1,
+            palette_idx: 1,
             ctx: None,
-            interval,
+            _interval,
             paused: false,
             _key_up_listen: key_up,
             _key_down_listen: key_down,
@@ -207,17 +164,10 @@ impl Component for App {
             }
 
             Msg::CyclePalette => {
-                self.pallette_idx = {
-                    let idx = self.pallette_idx + 1;
-                    if idx >= 10 {
-                        0
-                    } else {
-                        idx
-                    }
-                };
-                self.emulator.change_palette(PALETTES[self.pallette_idx].1);
+                self.palette_idx = (self.palette_idx + 1) % 10;
+                self.emulator
+                    .set_palette(PALETTES[self.palette_idx].colours);
                 self.render_frame();
-
                 true
             }
         }
@@ -230,7 +180,7 @@ impl Component for App {
             rom_size: self.rom_size,
             cart_type: self.cart_type.clone(),
             saveable: self.saveable,
-            pallette: AttrValue::from(PALETTES[self.pallette_idx].0),
+            pallette: AttrValue::from(PALETTES[self.palette_idx].name),
         });
 
         html! {
@@ -241,8 +191,8 @@ impl Component for App {
                 <div class="canvas">
 
                     <canvas
-                        width={(160 * SCALE as usize).to_string()}
-                        height={(144 * SCALE as usize).to_string()}
+                        width={(SCREEN_WIDTH * DISPLAY_SCALE as u32).to_string()}
+                        height={(SCREEN_HEIGHT * DISPLAY_SCALE as u32).to_string()}
                         ref={self.canvas.clone()}>
                     </canvas>
 
@@ -304,7 +254,7 @@ impl App {
             None => {
                 let ctx = canvas.get_context("2d").unwrap().unwrap();
                 let ctx = ctx.dyn_into::<web_sys::CanvasRenderingContext2d>().unwrap();
-                ctx.scale(SCALE, SCALE).unwrap();
+                ctx.scale(DISPLAY_SCALE, DISPLAY_SCALE).unwrap();
                 self.ctx = Some(ctx);
                 self.ctx.as_ref().unwrap()
             }
@@ -317,4 +267,27 @@ impl App {
         ctx.draw_image_with_html_canvas_element(&ctx.canvas().unwrap(), 0_f64, 0_f64)
             .unwrap();
     }
+}
+
+fn create_key_callback(ctx: &Context<App>, is_down: bool) -> Callback<KeyboardEvent> {
+    let link = ctx.link().clone();
+    Callback::from(move |e: KeyboardEvent| {
+        let key = match e.key().as_str() {
+            "ArrowUp" => GbKey::Up,
+            "ArrowDown" => GbKey::Down,
+            "ArrowLeft" => GbKey::Left,
+            "ArrowRight" => GbKey::Right,
+            "z" => GbKey::A,
+            "x" => GbKey::B,
+            "Enter" => GbKey::Start,
+            "Shift" => GbKey::Select,
+            _ => return,
+        };
+        let msg = if is_down {
+            Msg::KeyDown(key)
+        } else {
+            Msg::KeyUp(key)
+        };
+        link.send_message(msg);
+    })
 }
