@@ -111,4 +111,22 @@ impl Cpu {
             _ => 0,
         };
     }
+
+    #[cfg(feature = "inspect")]
+    pub fn state(&self) -> crate::inspect::CpuState {
+        crate::inspect::CpuState {
+            a: self.regs.a,
+            b: self.regs.b,
+            c: self.regs.c,
+            d: self.regs.d,
+            e: self.regs.e,
+            h: self.regs.h,
+            l: self.regs.l,
+            f: self.regs.flags(),
+            sp: self.regs.sp,
+            pc: self.regs.pc,
+            ime: self.ime,
+            halted: self.halted,
+        }
+    }
 }

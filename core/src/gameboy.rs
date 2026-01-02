@@ -118,4 +118,24 @@ impl Gameboy {
     pub fn save(&self) -> Result<*const u8, CartError> {
         self.mem.save()
     }
+
+    #[cfg(feature = "inspect")]
+    pub fn cpu_state(&self) -> crate::inspect::CpuState {
+        self.cpu.state()
+    }
+
+    #[cfg(feature = "inspect")]
+    pub fn gpu_state(&self) -> crate::inspect::GpuState {
+        self.mem.gpu.state()
+    }
+
+    #[cfg(feature = "inspect")]
+    pub fn vram(&self) -> &[u8] {
+        self.mem.gpu.vram()
+    }
+
+    #[cfg(feature = "inspect")]
+    pub fn oam(&self) -> &[u8] {
+        self.mem.gpu.oam()
+    }
 }

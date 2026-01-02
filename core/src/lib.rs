@@ -15,6 +15,9 @@ mod memory;
 mod serial;
 mod timer;
 
+#[cfg(feature = "inspect")]
+pub mod inspect;
+
 pub mod cartridge;
 pub use gameboy::Gameboy;
 pub use keypad::GbKey;

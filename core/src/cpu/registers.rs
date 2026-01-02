@@ -93,6 +93,11 @@ impl Registers {
         }
     }
 
+    #[cfg(feature = "inspect")]
+    pub fn flags(&self) -> u8 {
+        self.f
+    }
+
     pub fn set_flag(&mut self, flag: Flag, value: bool) {
         match flag {
             Flag::Z => {

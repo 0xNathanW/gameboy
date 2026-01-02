@@ -447,6 +447,43 @@ impl GPU {
         self.updated = false;
         updated
     }
+
+    #[cfg(feature = "inspect")]
+    pub fn vram(&self) -> &[u8] {
+        &self.vram
+    }
+
+    #[cfg(feature = "inspect")]
+    pub fn oam(&self) -> &[u8] {
+        &self.oam
+    }
+
+    #[cfg(feature = "inspect")]
+    pub fn state(&self) -> crate::inspect::GpuState {
+        use crate::inspect::{GpuMode, GpuState};
+
+        let mode = match self.stat.mode {
+            stat::Mode::HBlank => GpuMode::HBlank,
+            stat::Mode::VBlank => GpuMode::VBlank,
+            stat::Mode::OAMRead => GpuMode::OamScan,
+            stat::Mode::VRAMRead => GpuMode::Drawing,
+        };
+
+        GpuState {
+            ly: self.ly,
+            lyc: self.ly_compare,
+            scroll_x: self.scroll_x,
+            scroll_y: self.scroll_y,
+            window_x: self.window_x,
+            window_y: self.window_y,
+            mode,
+            lcd_enable: self.lcdc.lcd_enable,
+            window_enable: self.lcdc.window_enable,
+            sprite_enable: self.lcdc.sprite_enable,
+            bg_enable: self.lcdc.bg_window_enable,
+            sprite_size: self.lcdc.sprite_size,
+        }
+    }
 }
 
 impl MemoryBus for GPU {
