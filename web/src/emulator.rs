@@ -1,3 +1,4 @@
+use crate::constants::CYCLES_PER_FRAME;
 use gameboy_core::{
     cartridge::{open_cartridge, Cartridge},
     Gameboy, GbKey,
@@ -21,7 +22,7 @@ impl Emulator {
 
     pub fn tick(&mut self) {
         let mut frame_cycles = 0;
-        while frame_cycles < 69_905 {
+        while frame_cycles < CYCLES_PER_FRAME {
             let cycles = self.0.tick();
             self.0.update(cycles);
             frame_cycles += cycles;
@@ -40,7 +41,7 @@ impl Emulator {
         self.0.key_up(key);
     }
 
-    pub fn change_palette(&mut self, palette: [u32; 4]) {
+    pub fn set_palette(&mut self, palette: [u32; 4]) {
         self.0.set_palette(palette);
     }
 

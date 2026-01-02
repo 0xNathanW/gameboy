@@ -35,7 +35,7 @@ pub fn Panel(props: &InfoProps) -> Html {
             }
         }
 
-        let active = document()
+        let _active = document()
             .get_element_by_id(&tab)
             .unwrap()
             .set_attribute("style", "display:block")
