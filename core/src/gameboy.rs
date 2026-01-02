@@ -1,25 +1,14 @@
 #[cfg(feature = "audio")]
 use crate::apu::APU;
 use crate::{
-    cartridge::{CartError, Cartridge},
-    cpu::Cpu,
-    keypad::GbKey,
-    memory::Memory,
-    serial::SerialCallback,
+    cartridge::Cartridge, cpu::Cpu, keypad::GbKey, memory::Memory, serial::SerialCallback,
 };
 #[cfg(feature = "audio")]
 use std::sync::{Arc, Mutex};
 
-const STEP_TIME: u32 = 16;
-const STEP_CYCLES: u32 = (STEP_TIME as f64 / (1_000_f64 / 4_194_304_f64)) as u32;
-
 pub struct Gameboy {
     cpu: Cpu,
     mem: Memory,
-    // Provide control over speed of cpu clock.
-    step_cycles: u32,
-    #[cfg(not(target_arch = "wasm32"))]
-    step_zero: std::time::Instant,
 }
 
 impl Gameboy {
@@ -27,9 +16,6 @@ impl Gameboy {
         Self {
             cpu: Cpu::new(),
             mem: Memory::new(cartridge, callback),
-            step_cycles: 0,
-            #[cfg(not(target_arch = "wasm32"))]
-            step_zero: std::time::Instant::now(),
         }
     }
 
@@ -41,47 +27,13 @@ impl Gameboy {
         self.mem.update(cycles);
     }
 
-    // Run at documented 4.19 MHz with timing control (native only).
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn step(&mut self) -> u32 {
-        if self.step_cycles > STEP_CYCLES {
-            self.step_cycles -= STEP_CYCLES;
-            let now = std::time::Instant::now();
-
-            let d = now.duration_since(self.step_zero);
-            let sleep_time = (STEP_TIME.saturating_sub(d.as_millis() as u32)) as u64;
-            std::thread::sleep(std::time::Duration::from_millis(sleep_time));
-            self.step_zero = self
-                .step_zero
-                .checked_add(std::time::Duration::from_millis(STEP_TIME as u64))
-                .unwrap();
-
-            if now.checked_duration_since(self.step_zero).is_some() {
-                self.step_zero = now;
-            }
-        }
-
-        let cycles = self.tick();
-        self.step_cycles += cycles;
-        cycles
-    }
-
     // Check if the display buffer has been updated since last call.
     pub fn display_updated(&mut self) -> bool {
         self.mem.gpu.check_updated()
     }
 
-    // Get a reference to the pixel buffer for rendering.
-    // Returns &[u32] on native (160*144 pixels).
-    #[cfg(not(target_arch = "wasm32"))]
+    // Get a reference to the pixel buffer for rendering (160*144 pixels)
     pub fn display_buffer(&self) -> &[u32] {
-        &self.mem.gpu.pixels
-    }
-
-    // Get a reference to the pixel buffer for rendering.
-    // Returns &[u8] on WASM (160*144*4 bytes in RGBA format).
-    #[cfg(target_arch = "wasm32")]
-    pub fn display_buffer(&self) -> &[u8] {
         &self.mem.gpu.pixels
     }
 
@@ -109,14 +61,14 @@ impl Gameboy {
         self.mem.apu.as_ref().map(|apu| apu.buffer.clone())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn save(&self) -> Result<(), CartError> {
-        self.mem.save()
+    // Returns the save RAM data if the cartridge supports saves.
+    pub fn save_data(&self) -> Option<&[u8]> {
+        self.mem.save_data()
     }
 
-    #[cfg(target_arch = "wasm32")]
-    pub fn save(&self) -> Result<*const u8, CartError> {
-        self.mem.save()
+    // Returns the RTC zero timestamp if the cartridge has RTC support.
+    pub fn rtc_zero(&self) -> Option<u64> {
+        self.mem.rtc_zero()
     }
 
     #[cfg(feature = "inspect")]

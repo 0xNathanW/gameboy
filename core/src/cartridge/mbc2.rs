@@ -1,9 +1,6 @@
-#[cfg(not(target_arch = "wasm32"))]
-use super::load_save;
-use super::{Cartridge, MemoryBus, Result};
-use std::{fs::File, io::Write, path::PathBuf};
-// (max 256 KiB ROM and 512x4 bits RAM)
+use super::{Cartridge, MemoryBus};
 
+// (max 256 KiB ROM and 512x4 bits RAM)
 pub struct MBC2 {
     rom: Vec<u8>,
     rom_bank: usize,
@@ -11,64 +8,36 @@ pub struct MBC2 {
     // Enables the reading and writing of external RAM.
     ram_enable: bool,
     ram: Vec<u8>,
-
-    save_path: Option<PathBuf>,
 }
 
 impl MBC2 {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>) -> Self {
-        let ram = match save_path {
-            Some(ref path) => load_save(path, ram_size),
-            None => vec![0; ram_size],
-        };
-
-        Self {
-            ram,
-            ram_enable: false,
-            rom,
-            rom_bank: 1,
-            save_path,
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
     pub fn new(rom: Vec<u8>, ram_size: usize, save_data: Option<Vec<u8>>) -> Self {
-        let ram = match save_data {
-            Some(data) => data,
-            None => vec![0; ram_size],
-        };
+        let ram = save_data.unwrap_or_else(|| vec![0; ram_size]);
 
         Self {
             ram,
             ram_enable: false,
             rom,
             rom_bank: 1,
-            save_path: None,
         }
     }
 }
 
 impl Cartridge for MBC2 {
-    fn len(&self) -> usize {
-        self.rom.len()
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn save(&self) -> Result<()> {
-        match &self.save_path {
-            Some(path) => {
-                let mut file = File::create(path)?;
-                file.write_all(&self.ram)?;
-                Ok(())
-            }
-            None => Ok(()),
+    fn save_data(&self) -> Option<&[u8]> {
+        if self.ram.is_empty() {
+            None
+        } else {
+            Some(&self.ram)
         }
     }
 
-    #[cfg(target_arch = "wasm32")]
-    fn save(&self) -> Result<*const u8> {
-        Ok(self.ram.as_ptr())
+    fn ram_size(&self) -> usize {
+        self.ram.len()
+    }
+
+    fn len(&self) -> usize {
+        self.rom.len()
     }
 }
 

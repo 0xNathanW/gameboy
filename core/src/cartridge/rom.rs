@@ -1,4 +1,4 @@
-use super::{Cartridge, MemoryBus, Result};
+use super::{Cartridge, MemoryBus};
 
 // Small games of not more than 32 KiB ROM do not require a MBC chip for ROM banking.
 pub struct ROM(Vec<u8>);
@@ -18,17 +18,15 @@ impl MemoryBus for ROM {
 }
 
 impl Cartridge for ROM {
+    fn save_data(&self) -> Option<&[u8]> {
+        None
+    }
+
+    fn ram_size(&self) -> usize {
+        0
+    }
+
     fn len(&self) -> usize {
         self.0.len()
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn save(&self) -> Result<()> {
-        Ok(())
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn save(&self) -> Result<*const u8> {
-        Ok(self.0.as_ptr())
     }
 }

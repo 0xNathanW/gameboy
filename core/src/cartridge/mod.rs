@@ -1,31 +1,10 @@
 use crate::bus::MemoryBus;
-use std::{
-    fs::File,
-    io::{ErrorKind, Read},
-    path::{Path, PathBuf},
-};
 
 mod mbc1;
 mod mbc2;
 mod mbc3;
 mod mbc5;
 mod rom;
-
-// TODO: move
-#[cfg(not(target_arch = "wasm32"))]
-fn load_save(save_path: &PathBuf, ram_size: usize) -> Vec<u8> {
-    match File::open(save_path) {
-        Ok(mut file) => {
-            let mut ram = vec![];
-            file.read_to_end(&mut ram).unwrap();
-            ram
-        }
-        Err(ref e) if e.kind() == ErrorKind::NotFound => {
-            vec![0; ram_size]
-        }
-        Err(..) => panic!("could not read file"),
-    }
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum CartError {
@@ -56,11 +35,13 @@ const SAVEABLE: [u8; 11] = [
 ];
 
 pub trait Cartridge: MemoryBus {
-    #[cfg(not(target_arch = "wasm32"))]
-    fn save(&self) -> Result<()>;
+    fn save_data(&self) -> Option<&[u8]>;
 
-    #[cfg(target_arch = "wasm32")]
-    fn save(&self) -> Result<*const u8>;
+    fn ram_size(&self) -> usize;
+
+    fn rtc_zero(&self) -> Option<u64> {
+        None
+    }
 
     fn len(&self) -> usize;
 
@@ -151,13 +132,12 @@ pub trait Cartridge: MemoryBus {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub fn open_cartridge(path: &Path) -> Result<Box<dyn Cartridge>> {
-    let buf = std::fs::read(path)?;
-
-    let save_path = Some(path.to_path_buf().with_extension("sav"));
-    let rtc_path = Some(path.to_path_buf().with_extension("rtc"));
-
+// Opens a cartridge from ROM data with optional save data and RTC timestamp.
+pub fn open_cartridge(
+    buf: Vec<u8>,
+    save_data: Option<Vec<u8>>,
+    rtc_zero: Option<u64>,
+) -> Result<Box<dyn Cartridge>> {
     // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
     if buf.len() < 0x0150 {
         return Err(CartError::MissingInfo);
@@ -176,72 +156,6 @@ pub fn open_cartridge(path: &Path) -> Result<Box<dyn Cartridge>> {
         // MBC1 + RAM + BATTERY.
         0x03 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc1::MBC1::new(buf, ram_size, save_path))
-        }
-        // MBC2.
-        0x05 => Box::new(mbc2::MBC2::new(buf, 512, None)),
-        // MBC2 + BATTERY.
-        0x06 => Box::new(mbc2::MBC2::new(buf, 512, save_path)),
-        // MBC3 + TIMER + BATTERY.
-        0x0F => Box::new(mbc3::MBC3::new(buf, 0, save_path, rtc_path)),
-        // MBC3 + TIMER + RAM + BATTERY.
-        0x10 => {
-            let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc3::MBC3::new(buf, ram_size, save_path, rtc_path))
-        }
-        // MBC3.
-        0x11 => Box::new(mbc3::MBC3::new(buf, 0, None, None)),
-        // MBC3 + RAM.
-        0x12 => {
-            let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc3::MBC3::new(buf, ram_size, None, None))
-        }
-        // MBC3 + RAM + BATTERY.
-        0x13 => {
-            let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc3::MBC3::new(buf, ram_size, save_path, None))
-        }
-        // MBC5.
-        0x19 => Box::new(mbc5::MBC5::new(buf, 0, None)),
-        // MBC5 + RAM.
-        0x1A => {
-            let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc5::MBC5::new(buf, ram_size, None))
-        }
-        // MBC5 + RAM + BATTERY.
-        0x1B => {
-            let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc5::MBC5::new(buf, ram_size, save_path))
-        }
-        unknown => return Err(CartError::UnsupportedCartType(unknown)),
-    };
-
-    // If verification of logo or checksum fails, program should panic.
-    cartridge.verify_logo()?;
-    cartridge.verify_checksum()?;
-    Ok(cartridge)
-}
-
-#[cfg(target_arch = "wasm32")]
-pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Result<Box<dyn Cartridge>> {
-    // Cartridge has a header addr range $0100—$014F, followed by a JUMP @ $0150
-    if buf.len() < 0x0150 {
-        return Err(CartError::MissingInfo);
-    }
-    // byte 0x0147 indicates what kind of hardware is present on the cartridge — most notably its mapper.
-    let cartridge: Box<dyn Cartridge> = match buf[0x147] {
-        // ROM only.
-        0x00 => Box::new(rom::ROM::new(buf)),
-        // MBC1 .
-        0x01 => Box::new(mbc1::MBC1::new(buf, 0, None)),
-        // MBC1 + RAM.
-        0x02 => {
-            let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc1::MBC1::new(buf, ram_size, None))
-        }
-        // MBC1 + RAM + BATTERY.
-        0x03 => {
-            let ram_size = ram_size(buf[0x149]);
             Box::new(mbc1::MBC1::new(buf, ram_size, save_data))
         }
         // MBC2.
@@ -249,23 +163,23 @@ pub fn open_cartridge(buf: Vec<u8>, save_data: Option<Vec<u8>>) -> Result<Box<dy
         // MBC2 + BATTERY.
         0x06 => Box::new(mbc2::MBC2::new(buf, 512, save_data)),
         // MBC3 + TIMER + BATTERY.
-        0x0F => Box::new(mbc3::MBC3::new(buf, 0, save_data, None)),
+        0x0F => Box::new(mbc3::MBC3::new(buf, 0, save_data, true, rtc_zero)),
         // MBC3 + TIMER + RAM + BATTERY.
         0x10 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc3::MBC3::new(buf, ram_size, save_data, None))
+            Box::new(mbc3::MBC3::new(buf, ram_size, save_data, true, rtc_zero))
         }
         // MBC3.
-        0x11 => Box::new(mbc3::MBC3::new(buf, 0, None, None)),
+        0x11 => Box::new(mbc3::MBC3::new(buf, 0, None, false, None)),
         // MBC3 + RAM.
         0x12 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc3::MBC3::new(buf, ram_size, None, None))
+            Box::new(mbc3::MBC3::new(buf, ram_size, None, false, None))
         }
         // MBC3 + RAM + BATTERY.
         0x13 => {
             let ram_size = ram_size(buf[0x149]);
-            Box::new(mbc3::MBC3::new(buf, ram_size, save_data, None))
+            Box::new(mbc3::MBC3::new(buf, ram_size, save_data, false, None))
         }
         // MBC5.
         0x19 => Box::new(mbc5::MBC5::new(buf, 0, None)),

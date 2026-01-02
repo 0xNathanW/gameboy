@@ -7,9 +7,18 @@ use cpal::{
     OutputCallbackInfo,
 };
 use minifb::{Key, Scale, Window, WindowOptions};
-use std::{ffi::OsStr, path::Path};
+use std::{
+    ffi::OsStr,
+    fs::File,
+    io::{Read, Write},
+    path::Path,
+    time::Instant,
+};
 
 use gameboy_core::{cartridge, Gameboy, GbKey, SCREEN_HEIGHT, SCREEN_WIDTH};
+
+const STEP_TIME_MS: u64 = 16;
+const STEP_CYCLES: u32 = (STEP_TIME_MS as f64 / (1_000_f64 / 4_194_304_f64)) as u32;
 
 #[derive(Parser)]
 #[command(author = "NathanW", about = "A Rust powered Gameboy emulator.")]
@@ -42,6 +51,23 @@ enum DisplayScale {
     X32,
 }
 
+fn load_file(path: &Path) -> Option<Vec<u8>> {
+    File::open(path).ok().and_then(|mut f| {
+        let mut data = Vec::new();
+        f.read_to_end(&mut data).ok().map(|_| data)
+    })
+}
+
+fn load_rtc_zero(path: &Path) -> Option<u64> {
+    load_file(path).and_then(|data| {
+        if data.len() >= 8 {
+            Some(u64::from_le_bytes(data[..8].try_into().unwrap()))
+        } else {
+            None
+        }
+    })
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
     let rom_name = args.path;
@@ -53,7 +79,15 @@ fn main() -> Result<()> {
         "file provided does not have the extention '.gb'"
     );
 
-    let cartridge = cartridge::open_cartridge(rom_path).context("failed loading cartridge")?;
+    let save_path = rom_path.with_extension("sav");
+    let rtc_path = rom_path.with_extension("rtc");
+
+    let rom_data = std::fs::read(rom_path).context("failed reading ROM file")?;
+    let save_data = load_file(&save_path);
+    let rtc_zero = load_rtc_zero(&rtc_path);
+
+    let cartridge = cartridge::open_cartridge(rom_data, save_data, rtc_zero)
+        .context("failed loading cartridge")?;
 
     let opts = WindowOptions {
         scale: match args.scale {
@@ -102,9 +136,27 @@ fn main() -> Result<()> {
         (Key::Enter, GbKey::Start),
     ];
 
+    let mut step_cycles: u32 = 0;
+    let mut step_zero = Instant::now();
+
     while display.is_open() && !display.is_key_down(Key::Q) {
-        let cycles = gameboy.step();
+        if step_cycles > STEP_CYCLES {
+            step_cycles -= STEP_CYCLES;
+            let now = Instant::now();
+            let elapsed = now.duration_since(step_zero);
+            let sleep_time = STEP_TIME_MS.saturating_sub(elapsed.as_millis() as u64);
+            std::thread::sleep(std::time::Duration::from_millis(sleep_time));
+            step_zero = step_zero
+                .checked_add(std::time::Duration::from_millis(STEP_TIME_MS))
+                .unwrap();
+            if now.checked_duration_since(step_zero).is_some() {
+                step_zero = now;
+            }
+        }
+
+        let cycles = gameboy.tick();
         gameboy.update(cycles);
+        step_cycles += cycles;
 
         if gameboy.display_updated() {
             display
@@ -121,8 +173,20 @@ fn main() -> Result<()> {
         }
     }
 
-    // Save.
-    gameboy.save()?;
+    // Save RAM data if the cartridge supports it.
+    if let Some(data) = gameboy.save_data() {
+        File::create(&save_path)
+            .and_then(|mut f| f.write_all(data))
+            .context("failed to save game")?;
+    }
+
+    // Save RTC zero if the cartridge has RTC.
+    if let Some(rtc) = gameboy.rtc_zero() {
+        File::create(&rtc_path)
+            .and_then(|mut f| f.write_all(&rtc.to_le_bytes()))
+            .context("failed to save RTC")?;
+    }
+
     Ok(())
 }
 

@@ -1,8 +1,6 @@
-use std::{fs::File, io::Write, path::PathBuf, time::SystemTime};
+use super::{Cartridge, MemoryBus};
+use std::time::SystemTime;
 
-#[cfg(not(target_arch = "wasm32"))]
-use super::load_save;
-use super::{Cartridge, MemoryBus, Result};
 /*
 (max 2MByte ROM and/or 32KByte RAM and Timer)
 Beside for the ability to access up to 2MB ROM (18 banks), and 32KB RAM (4 banks), the MBC3 also includes a built-in Real Time Clock (RTC).
@@ -19,31 +17,22 @@ struct RealTimeClock {
 }
 
 impl RealTimeClock {
-    fn new(rtc_path: Option<PathBuf>) -> Option<RealTimeClock> {
-        match rtc_path {
-            Some(path) => {
-                let zero = match std::fs::read(path) {
-                    Ok(f) => {
-                        let mut b = [0_u8; 8];
-                        b.copy_from_slice(&f);
-                        u64::from_be_bytes(b)
-                    }
-                    Err(_) => SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs(),
-                };
-                Some(Self {
-                    seconds: 0,
-                    mintues: 0,
-                    hours: 0,
-                    dl: 0,
-                    dh: 0,
-                    zero,
-                })
-            }
-            None => None,
-        }
+    fn new(rtc_zero: Option<u64>) -> Option<RealTimeClock> {
+        let zero = rtc_zero.unwrap_or_else(|| {
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+        });
+
+        Some(Self {
+            seconds: 0,
+            mintues: 0,
+            hours: 0,
+            dl: 0,
+            dh: 0,
+            zero,
+        })
     }
 
     fn step(&mut self) {
@@ -117,44 +106,17 @@ pub struct MBC3 {
     ram_enable: bool,
 
     rtc: Option<RealTimeClock>,
-    save_path: Option<PathBuf>,
 }
 
 impl MBC3 {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(
-        rom: Vec<u8>,
-        ram_size: usize,
-        save_path: Option<PathBuf>,
-        rtc_path: Option<PathBuf>,
-    ) -> Self {
-        let ram = match save_path {
-            Some(ref path) => load_save(path, ram_size),
-            None => vec![0; ram_size],
-        };
-
-        Self {
-            ram,
-            ram_bank: 1,
-            rom,
-            rom_bank: 0,
-            ram_enable: false,
-            save_path,
-            rtc: RealTimeClock::new(rtc_path),
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
     pub fn new(
         rom: Vec<u8>,
         ram_size: usize,
         save_data: Option<Vec<u8>>,
-        rtc_path: Option<PathBuf>,
+        has_rtc: bool,
+        rtc_zero: Option<u64>,
     ) -> Self {
-        let ram = match save_data {
-            Some(data) => data,
-            None => vec![0; ram_size],
-        };
+        let ram = save_data.unwrap_or_else(|| vec![0; ram_size]);
 
         Self {
             ram,
@@ -162,37 +124,34 @@ impl MBC3 {
             rom,
             rom_bank: 0,
             ram_enable: false,
-            save_path: None,
-            rtc: RealTimeClock::new(rtc_path),
+            rtc: if has_rtc {
+                RealTimeClock::new(rtc_zero)
+            } else {
+                None
+            },
         }
     }
 }
 
 impl Cartridge for MBC3 {
-    fn len(&self) -> usize {
-        self.rom.len()
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn save(&self) -> Result<()> {
-        match self.save_path.clone() {
-            None => Ok(()),
-            Some(path) => {
-                let mut file = File::create(path)?;
-                // Write real time clock.
-                if self.rtc.is_some() {
-                    file.write_all(&self.rtc.as_ref().unwrap().zero.to_be_bytes())?;
-                }
-                // Write ram.
-                file.write_all(&self.ram)?;
-                Ok(())
-            }
+    fn save_data(&self) -> Option<&[u8]> {
+        if self.ram.is_empty() {
+            None
+        } else {
+            Some(&self.ram)
         }
     }
 
-    #[cfg(target_arch = "wasm32")]
-    fn save(&self) -> Result<*const u8> {
-        Ok(self.ram.as_ptr())
+    fn ram_size(&self) -> usize {
+        self.ram.len()
+    }
+
+    fn rtc_zero(&self) -> Option<u64> {
+        self.rtc.as_ref().map(|rtc| rtc.zero)
+    }
+
+    fn len(&self) -> usize {
+        self.rom.len()
     }
 }
 

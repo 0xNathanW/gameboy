@@ -2,7 +2,7 @@
 use crate::apu::APU;
 use crate::{
     bus::MemoryBus,
-    cartridge::{CartError, Cartridge},
+    cartridge::Cartridge,
     gpu::GPU,
     intf::Intf,
     keypad::KeyPad,
@@ -180,14 +180,13 @@ impl Memory {
         }
     }
 
-    // Save the cartridge RAM.
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn save(&self) -> Result<(), CartError> {
-        self.cartridge.save()
+    // Returns the save RAM data if the cartridge supports saves.
+    pub fn save_data(&self) -> Option<&[u8]> {
+        self.cartridge.save_data()
     }
 
-    #[cfg(target_arch = "wasm32")]
-    pub fn save(&self) -> Result<*const u8, CartError> {
-        self.cartridge.save()
+    // Returns the RTC zero timestamp if the cartridge has RTC support.
+    pub fn rtc_zero(&self) -> Option<u64> {
+        self.cartridge.rtc_zero()
     }
 }

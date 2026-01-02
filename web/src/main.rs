@@ -138,7 +138,7 @@ impl Component for App {
                 self.file_reader = Some(gloo::file::callbacks::read_as_bytes(
                     &file,
                     move |bytes| match bytes {
-                        Ok(bytes) => match open_cartridge(bytes, None) {
+                        Ok(bytes) => match open_cartridge(bytes, None, None) {
                             Ok(cartridge) => {
                                 link.send_message(Msg::NewROM(cartridge));
                             }

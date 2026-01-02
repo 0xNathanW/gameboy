@@ -1,7 +1,4 @@
-#[cfg(not(target_arch = "wasm32"))]
-use super::load_save;
-use super::{Cartridge, MemoryBus, Result};
-use std::{fs::File, io::Write, path::PathBuf, vec};
+use super::{Cartridge, MemoryBus};
 
 /*
 In its default configuration, MBC1 supports up to 512 KiB ROM with up to
@@ -27,65 +24,38 @@ pub struct MBC1 {
     ram_bank: u8,
 
     // This 1-bit register selects between the two MBC1 banking modes,
-    //controlling the behaviour of the secondary 2-bit banking register (above).
+    // controlling the behaviour of the secondary 2-bit banking register (above).
     mode: bool,
-    save_path: Option<PathBuf>,
 }
 
 impl MBC1 {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(rom: Vec<u8>, ram_size: usize, save_path: Option<PathBuf>) -> Self {
-        let ram = match save_path {
-            Some(ref path) => load_save(path, ram_size),
-            None => vec![0; ram_size],
-        };
-
-        Self {
-            ram,
-            rom,
-            rom_bank: 1,
-            save_path,
-            ..Default::default()
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
     pub fn new(rom: Vec<u8>, ram_size: usize, save_data: Option<Vec<u8>>) -> Self {
-        let ram = match save_data {
-            Some(data) => data,
-            None => vec![0; ram_size],
-        };
+        let ram = save_data.unwrap_or_else(|| vec![0; ram_size]);
 
         Self {
             ram,
             rom,
             rom_bank: 1,
-            save_path: None,
             ..Default::default()
         }
     }
 }
 
 impl Cartridge for MBC1 {
-    fn len(&self) -> usize {
-        self.rom.len()
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn save(&self) -> Result<()> {
-        match &self.save_path {
-            Some(path) => {
-                let mut file = File::create(path)?;
-                file.write_all(&self.ram)?;
-                Ok(())
-            }
-            None => Ok(()),
+    fn save_data(&self) -> Option<&[u8]> {
+        if self.ram.is_empty() {
+            None
+        } else {
+            Some(&self.ram)
         }
     }
 
-    #[cfg(target_arch = "wasm32")]
-    fn save(&self) -> Result<*const u8> {
-        Ok(self.ram.as_ptr())
+    fn ram_size(&self) -> usize {
+        self.ram.len()
+    }
+
+    fn len(&self) -> usize {
+        self.rom.len()
     }
 }
 
