@@ -1,238 +1,290 @@
 @import url('https://fonts.googleapis.com/css?family=Press Start 2P');
-@import url('https://css.gg/software-upload.css');
-@import url('https://css.gg/play-pause.css');
-@import url('https://css.gg/color-picker.css');
-@import url('https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css');
 
 :root {
-    --blue: rgb(2, 48, 71);
-    --shaded-blue: rgb(0, 38, 57);
+    --bg: #1a1d21;
+    --surface: #252a30;
+    --border: #3d454f;
+    --text: #e4e8ec;
+    --text-muted: #8a939e;
+    --accent: #7ca3c4;
 }
 
-/* We use label to style the file upload button. */
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    background-color: var(--bg);
+    font-family: 'Lucida Console', Monaco, monospace;
+    font-size: 14px;
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
 input[type="file"] {
     display: none;
 }
 
-input[type="radio"] {
-    display: none;
+a:link,
+a:visited,
+a:active,
+a:hover {
+    color: var(--text);
 }
 
-input[type="checkbox"] {
-    display: none;
+a:hover {
+    color: var(--accent);
 }
 
-html {
-    background-color: var(--blue);
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-}
-
-h1 {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 60px;
-    font-weight: bolder;
-    color: lime;
-    -webkit-text-stroke: 3px darkcyan;
-    text-align: center;
-}
-
-body {
-    font-family: 'Lucinda Console', Monaco, monospace;
-    font-size: 16px;
-    font-weight: bolder;
-    color: white;
-}
-
-input {
-    display: none;
-}
-
-a:link, a:visited, a:active, a:hover {
-    color: lime;
-    text-decoration: none;
-}
-
-.upper {
+.app-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    min-height: 100vh;
 }
 
-.button-row {
+header {
     display: flex;
-    flex-direction: row;
-    flex: 1;
-    /* probs change when more buttons are added */
-    column-gap: 2%;
-    /* justify-content: space-around; */
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
-#play-pause:checked + #play-pause-label::after {
-    content: '▶ Play';
+header h1 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 24px;
+    color: var(--accent);
+    margin: 0;
 }
 
-#play-pause:not(:checked) + #play-pause-label::after {
-    content: '❚❚ Pause';
-}
-
-#play-pause-label {
-    min-width: 111px;
-}
-
-.control-button, .file-input-label {
-    height: 48px;
-    box-sizing: border-box;
-    max-width: 50%;
-    padding: 0 20px;
-    line-height: 24px;
-    
-    font-family: 'Lucinda Console', Monaco, monospace;
-    font-size: 16px;
-    font-weight: bolder;
+header a {
+    font-size: 13px;
     text-decoration: none;
-    text-align: center;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    width: 280px;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+
+.canvas-wrapper {
+    flex: 1;
+    display: flex;
     align-items: center;
     justify-content: center;
-    
-    border: 2px solid white;
-    border-radius: 8px;
-    
-    background-color: var(--blue);
-    color: white;
-    
-    display: flex;
-    cursor: pointer;
-    position: relative;
-    
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
-}
-
-.control-button:hover, .file-input-label:hover {
-    background-color: var(--shaded-blue);
-}
-
-.control-button:active, .file-input-label:active {
-    background-color: var(--blue);
-    outline: 0;
-}
-
-.control-button:hover, .file-input-label:hover {
-    outline: 0;
-}
-
-@media (min-width: 768px) {
-    .control-button, .file-input-label {
-        padding: 0 20px;
-    }
-}
-
-.canvas {
-    display: flex;
-    flex-direction: column;
-    row-gap: 15px;
+    overflow: auto;
+    padding: 24px;
 }
 
 canvas {
-    border: 5px solid white;
+    border: 2px solid var(--border);
+    display: block;
+    image-rendering: pixelated;
+    flex-shrink: 0;
 }
 
-.panel {
+.section {
+    border-bottom: 1px solid var(--border);
+}
+
+.section:last-child {
+    border-bottom: none;
+}
+
+.section-header {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    row-gap: 10px;
-    height: 450px;
-}
-
-.panel-inner {
-    display: flex;
-    width: 640px;
-    height: 100%;
-    flex-direction: column;
-    /* align-items: center;
-    justify-content: center; */
-}
-
-.panel-button-row {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    position: static;
-}
-
-/* Style like tabs with bottom border that slides when tab is active */
-.panel-buttons {
-    display: flex;
-    height: 48px;
-    padding: 0 25px;
-    line-height: 24px;
+    padding: 14px 16px;
     cursor: pointer;
-    flex-grow: 1;
-    font-family: 'Press Start 2P', Monaco, monospace;
-    font-size: 16px;
-    font-weight: bolder;
-    text-decoration: none;
-    text-align: center;
+    user-select: none;
+    transition: background-color 0.15s;
+}
+
+.section-header:hover {
+    background-color: var(--bg);
+}
+
+.section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.section-toggle {
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform 0.15s;
+}
+
+.section-toggle.collapsed {
+    transform: rotate(-90deg);
+}
+
+.section-content {
+    padding: 0 16px 16px 16px;
+}
+
+.section-content.collapsed {
+    display: none;
+}
+
+.panel-section {
+    margin-bottom: 12px;
+}
+
+.panel-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-content>.panel-section:has(.stepper-row) {
+    margin-bottom: 0;
+}
+
+.subsection-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+
+.btn {
+    height: 36px;
+    padding: 0 14px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text);
+    background-color: transparent;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--blue);
-    border: none;
-    color: white;
+    transition: border-color 0.15s, color 0.15s;
+    user-select: none;
 }
 
-.panel-buttons:hover {
-    background-color: var(--shaded-blue);
+.btn:hover {
+    border-color: var(--text-muted);
+    color: var(--accent);
 }
 
-.panel-input:checked + .panel-buttons {
-    border-bottom: 3px solid white;
-}
-
-.panel-content {
+.btn-full {
     width: 100%;
-    justify-content: left;
-    font-size: 18px;
-    padding: 25px;
 }
 
-.controls {
-    display: grid;
-    grid-template-columns: auto auto;
-}
-
-.item {
+.info-row {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
+    justify-content: space-between;
+    padding: 6px 0;
 }
 
-.start-select {
-    pointer-events: none;
-    border-radius: 5px;
-    margin-left: 7px;
-    font-size: 16px;
-    font-family: 'Lucinda Console', Monaco, monospace;
-    font-weight: bolder;
+.info-label {
+    color: var(--text-muted);
 }
 
-#arrows {
+.info-value {
+    text-align: right;
+}
+
+.control-item {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.control-action {
+    color: var(--text-muted);
+}
+
+.control-key {
+    background: var(--bg);
+    padding: 4px 10px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+}
+
+.panel-top {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.stepper-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.stepper-label {
+    color: var(--text-muted);
+}
+
+.stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stepper-btn {
+    width: 24px;
+    height: 24px;
+    font-family: inherit;
+    font-size: 10px;
+    color: var(--text-muted);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
     align-items: center;
     justify-content: center;
+    transition: color 0.15s;
 }
 
-#about {
-    line-height: 24px;
-    font-size: 20px;
+.stepper-btn:hover {
+    color: var(--accent);
 }
 
-#info {
-    font-size: 20px;
-    line-height: 30px;
+.stepper-value {
+    min-width: 80px;
+    text-align: center;
+    font-size: 13px;
+}
+
+@media (max-width: 700px) {
+    header {
+        padding: 12px 16px;
+    }
+
+    header h1 {
+        font-size: 16px;
+    }
+
+    .sidebar {
+        width: 240px;
+    }
+
+    .canvas-wrapper {
+        padding: 16px;
+    }
 }

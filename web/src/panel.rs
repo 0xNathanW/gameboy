@@ -1,8 +1,9 @@
-use gloo::{console::log, utils::document};
+use crate::constants::{MAX_SCALE, MIN_SCALE};
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 #[derive(Clone, PartialEq, Properties)]
-pub struct InfoProps {
+pub struct PanelProps {
     #[prop_or_default]
     pub is_cgb: bool,
 
@@ -19,193 +20,227 @@ pub struct InfoProps {
     pub saveable: bool,
 
     #[prop_or(AttrValue::from("Unknown"))]
-    pub pallette: AttrValue,
+    pub palette: AttrValue,
+
+    #[prop_or_default]
+    pub paused: bool,
+
+    #[prop_or(3)]
+    pub scale: u32,
+
+    pub on_file_upload: Callback<web_sys::File>,
+    pub on_pause: Callback<()>,
+    pub on_cycle_palette: Callback<i32>,
+    pub on_set_scale: Callback<u32>,
 }
 
 #[function_component]
-pub fn Panel(props: &InfoProps) -> Html {
-    // A callback to show content of clicked tab, and hide the rest
-    let cb = Callback::from(move |tab: String| {
-        let tabs = document().get_elements_by_class_name("panel-content");
+pub fn Panel(props: &PanelProps) -> Html {
+    let cart_collapsed = use_state(|| false);
+    let controls_collapsed = use_state(|| true);
+    let settings_collapsed = use_state(|| true);
 
-        for i in 0..tabs.length() {
-            if let Some(tab) = tabs.item(i) {
-                log!(tab.id());
-                tab.set_attribute("style", "display:none").unwrap();
+    // Clones are cheap here, callback is wrapped Rc.
+    let on_file_change = {
+        let callback = props.on_file_upload.clone();
+        Callback::from(move |event: Event| {
+            let input: HtmlInputElement = event.target_unchecked_into();
+            if let Some(file) = input.files().and_then(|list| list.get(0)) {
+                callback.emit(file);
             }
+        })
+    };
+
+    let on_pause_click = {
+        let callback = props.on_pause.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(());
+        })
+    };
+
+    let on_palette_prev = {
+        let callback = props.on_cycle_palette.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(-1);
+        })
+    };
+
+    let on_palette_next = {
+        let callback = props.on_cycle_palette.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(1);
+        })
+    };
+
+    let on_scale_down = {
+        let callback = props.on_set_scale.clone();
+        let scale = props.scale;
+        Callback::from(move |_: MouseEvent| {
+            if scale > MIN_SCALE {
+                callback.emit(scale - 1);
+            }
+        })
+    };
+
+    let on_scale_up = {
+        let callback = props.on_set_scale.clone();
+        let scale = props.scale;
+        Callback::from(move |_: MouseEvent| {
+            if scale < MAX_SCALE {
+                callback.emit(scale + 1);
+            }
+        })
+    };
+
+    let toggle_cart = {
+        let collapsed = cart_collapsed.clone();
+        Callback::from(move |_: MouseEvent| collapsed.set(!*collapsed))
+    };
+
+    let toggle_controls = {
+        let collapsed = controls_collapsed.clone();
+        Callback::from(move |_: MouseEvent| collapsed.set(!*collapsed))
+    };
+
+    let toggle_settings = {
+        let collapsed = settings_collapsed.clone();
+        Callback::from(move |_: MouseEvent| collapsed.set(!*collapsed))
+    };
+
+    let toggle_class = |collapsed: bool| {
+        if collapsed {
+            "section-toggle collapsed"
+        } else {
+            "section-toggle"
         }
+    };
 
-        let _active = document()
-            .get_element_by_id(&tab)
-            .unwrap()
-            .set_attribute("style", "display:block")
-            .unwrap();
-    });
-
-    let info_cb = cb.clone();
-    let about_cb = cb.clone();
+    let content_class = |collapsed: bool| {
+        if collapsed {
+            "section-content collapsed"
+        } else {
+            "section-content"
+        }
+    };
 
     html! {
-        <div class="panel">
-            <div class="panel-inner">
-                <div class="panel-button-row">
-
-                    <input
-                        class="panel-input"
-                        onclick={move |_| { info_cb.emit("info".to_string()) }}
-                        type="radio"
-                        name="tabs"
-                        value="info"
-                        id="info-tab"
-                        checked=true
-                    />
-                    <label for="info-tab" class="panel-buttons">{"Info"}</label>
-
-                    <input
-                        class="panel-input"
-                        onclick={move |_| { about_cb.emit("about".to_string()) }}
-                        type="radio"
-                        name="tabs"
-                        value="about"
-                        id="about-tab"
-                    />
-                    <label for="about-tab" class="panel-buttons">{"About"}</label>
-
-                    <input
-                        class="panel-input"
-                        onclick={move |_| { cb.emit("controls".to_string()) }}
-                        type="radio"
-                        name="tabs"
-                        value="controls"
-                        id="controls-tab"
-                    />
-                    <label for="controls-tab" class="panel-buttons">{"Controls"}</label>
-                </div>
-
-                <div class="panel-content" id="info">
-                    <p>
-                        {"Console: "}
-                        <span style="float:right;">
-                            {if props.is_cgb { "Gameboy Colour" } else { "Gameboy Classic" }}
-                        </span>
-                    </p>
-                    <p>
-                        {"ROM Name: "}
-                        <span style="float:right;">
-                            {props.rom_name.clone()}
-                        </span>
-                    </p>
-                    <p>
-                        {"ROM Size: "}
-                        <span style="float:right;">
-                            {format!("{} KB", props.rom_size / 1024)}
-                        </span>
-                    </p>
-                    <p>
-                        {"Cart Type: "}
-                        <span style="float:right;">
-                            {props.cart_type.clone()}
-                        </span>
-                    </p>
-                    <p>
-                        {"Saveable: "}
-                        <span style="float:right;">
-                            {if props.saveable { "Yes" } else { "No" }}
-                        </span>
-                    </p>
-                    <p>
-                        {"Pallette: "}
-                        <span style="float:right;">
-                            {props.pallette.clone()}
-                        </span>
-                    </p>
-                </div>
-
-                <div class="panel-content" id="about" style="display:none">
-                    <About />
-                </div>
-
-                <div class="panel-content" id="controls" style="display:none">
-                    <Controls />
-                </div>
-            </div>
-        </div>
-    }
-}
-
-#[function_component]
-fn About() -> Html {
-    html! {
-        <>
-            <p>{"A Gameboy emulator built in Rust and delivered to the web using WebAssembly and Yew."}</p>
-            <p>{"Link to repository: "}
-                <a
-                    href="https://github.com/0xNathanW/gameboy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >{"github.com/0xNathanW/gameboy"}</a>
-            </p>
-            <p>{"TODO (hopefully):"}</p>
-            <ul>
-                <li>{"Web audio support."}</li>
-                <li>{"Save states."}</li>
-                <li>{"Gameboy Color support."}</li>
-                <li>{"Fix scaling/quality tradeoff."}</li>
-                <li>{"Debugging tools."}</li>
-            </ul>
-            <p>{"Made by: Nathan W."}</p>
-        </>
-    }
-}
-
-#[function_component]
-fn Controls() -> Html {
-    html! {
-        <div class="controls">
-            <div class="item">
-                <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="currentColor" class="bi bi-dpad" viewBox="0 0 16 16">
-                    <path d="m7.788 2.34-.799 1.278A.25.25 0 0 0 7.201 4h1.598a.25.25 0 0 0 .212-.382l-.799-1.279a.25.25 0 0 0-.424 0Zm0 11.32-.799-1.277A.25.25 0 0 1 7.201 12h1.598a.25.25 0 0 1 .212.383l-.799 1.278a.25.25 0 0 1-.424 0ZM3.617 9.01 2.34 8.213a.25.25 0 0 1 0-.424l1.278-.799A.25.25 0 0 1 4 7.201V8.8a.25.25 0 0 1-.383.212Zm10.043-.798-1.277.799A.25.25 0 0 1 12 8.799V7.2a.25.25 0 0 1 .383-.212l1.278.799a.25.25 0 0 1 0 .424Z"/>
-                    <path d="M6.5 0A1.5 1.5 0 0 0 5 1.5v3a.5.5 0 0 1-.5.5h-3A1.5 1.5 0 0 0 0 6.5v3A1.5 1.5 0 0 0 1.5 11h3a.5.5 0 0 1 .5.5v3A1.5 1.5 0 0 0 6.5 16h3a1.5 1.5 0 0 0 1.5-1.5v-3a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 0 16 9.5v-3A1.5 1.5 0 0 0 14.5 5h-3a.5.5 0 0 1-.5-.5v-3A1.5 1.5 0 0 0 9.5 0h-3ZM6 1.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3A1.5 1.5 0 0 0 11.5 6h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a1.5 1.5 0 0 0-1.5 1.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3A1.5 1.5 0 0 0 4.5 10h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 0 6 4.5v-3Z"/>
-                </svg>
+        <div class="sidebar">
+            // Pause button at top
+            <div class="panel-top">
+                <button onclick={on_pause_click} class="btn btn-full">
+                    {if props.paused { "Resume" } else { "Pause" }}
+                </button>
             </div>
 
-            <div class="item" id="arrows">
-                <button class="kbc-button kbc-button-sm">{"🡡"}</button>
-                <div id="arrow-bottom">
-                    <button class="kbc-button kbc-button-sm">{"🡠"}</button>
-                    <button class="kbc-button kbc-button-sm">{"🡣"}</button>
-                    <button class="kbc-button kbc-button-sm">{"🡢"}</button>
+            // Cartridge Section
+            <div class="section">
+                <div class="section-header" onclick={toggle_cart}>
+                    <span class="section-title">{"Cartridge"}</span>
+                    <span class={toggle_class(*cart_collapsed)}>{"▼"}</span>
+                </div>
+                <div class={content_class(*cart_collapsed)}>
+                    <div class="panel-section">
+                        <div class="info-row">
+                            <span class="info-label">{"Name"}</span>
+                            <span class="info-value">{&props.rom_name}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">{"Console"}</span>
+                            <span class="info-value">
+                                {if props.is_cgb { "GBC" } else { "DMG" }}
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">{"Size"}</span>
+                            <span class="info-value">{format!("{} KB", props.rom_size / 1024)}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">{"Type"}</span>
+                            <span class="info-value">{&props.cart_type}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">{"Battery"}</span>
+                            <span class="info-value">{if props.saveable { "Yes" } else { "No" }}</span>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <input
+                            id="file-input"
+                            type="file"
+                            multiple=false
+                            accept=".gb"
+                            onchange={on_file_change}
+                        />
+                        <label for="file-input" class="btn btn-full">
+                            {"Load ROM"}
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <div class="item">
-                <svg width="50" height="50">
-                    <circle cx="25" cy="25" r="15" fill="#B53737" stroke="black" stroke-width="3"/>
-                    <text x="50%" y="50%" text-anchor="middle" fill="white" font-size="14px" font-family="Arial" font-weight="bolder" dy=".3em">{"A"}</text>
-                </svg>
-
-                <svg width="50" height="50">
-                    <circle cx="25" cy="25" r="15" fill="#B53737" stroke="black" stroke-width="3"/>
-                    <text x="50%" y="50%" text-anchor="middle" fill="white" font-size="14px" font-family="Arial" font-weight="bolder" dy=".3em">{"B"}</text>
-                </svg>
-
+            // Controls Section
+            <div class="section">
+                <div class="section-header" onclick={toggle_controls}>
+                    <span class="section-title">{"Controls"}</span>
+                    <span class={toggle_class(*controls_collapsed)}>{"▼"}</span>
+                </div>
+                <div class={content_class(*controls_collapsed)}>
+                    <div class="panel-section">
+                        <div class="control-item">
+                            <span class="control-action">{"D-Pad"}</span>
+                            <span class="control-key">{"Arrow Keys"}</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-action">{"A Button"}</span>
+                            <span class="control-key">{"Z"}</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-action">{"B Button"}</span>
+                            <span class="control-key">{"X"}</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-action">{"Start"}</span>
+                            <span class="control-key">{"Enter"}</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-action">{"Select"}</span>
+                            <span class="control-key">{"Shift"}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="item">
-                <button class="kbc-button kbc-button-sm">{"Z"}</button>
-                <button class="kbc-button kbc-button-sm">{"X"}</button>
-            </div>
+            // Settings Section
+            <div class="section">
+                <div class="section-header" onclick={toggle_settings}>
+                    <span class="section-title">{"Settings"}</span>
+                    <span class={toggle_class(*settings_collapsed)}>{"▼"}</span>
+                </div>
+                <div class={content_class(*settings_collapsed)}>
+                    <div class="panel-section">
+                        <div class="stepper-row">
+                            <span class="stepper-label">{"Scale"}</span>
+                            <div class="stepper">
+                                <button class="stepper-btn" onclick={on_scale_down}>{"◀"}</button>
+                                <span class="stepper-value">{format!("{}x", props.scale)}</span>
+                                <button class="stepper-btn" onclick={on_scale_up}>{"▶"}</button>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="item">
-                <button class="start-select">{"Start"}</button>
-                <button class="start-select">{"Select"}</button>
+                    <div class="panel-section">
+                        <div class="stepper-row">
+                            <span class="stepper-label">{"Palette"}</span>
+                            <div class="stepper">
+                                <button class="stepper-btn" onclick={on_palette_prev}>{"◀"}</button>
+                                <span class="stepper-value">{&props.palette}</span>
+                                <button class="stepper-btn" onclick={on_palette_next}>{"▶"}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <div class="item">
-                <button class="kbc-button kbc-button-sm">{"Enter"}</button>
-                <button class="kbc-button kbc-button-sm">{"Shift"}</button>
-            </div>
-
         </div>
     }
 }

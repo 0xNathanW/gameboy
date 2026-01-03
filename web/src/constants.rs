@@ -8,7 +8,8 @@ pub const CYCLES_PER_FRAME: u32 = 69_905;
 // Display constants
 pub const SCREEN_WIDTH: u32 = 160;
 pub const SCREEN_HEIGHT: u32 = 144;
-pub const DISPLAY_SCALE: f64 = 4.0;
+pub const MIN_SCALE: u32 = 1;
+pub const MAX_SCALE: u32 = 8;
 
 pub struct Palette {
     pub name: &'static str,

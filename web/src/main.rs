@@ -6,9 +6,9 @@ use gameboy_core::{
 use gloo::{
     dialogs::alert, events::EventListener, file::File, timers::callback::Interval, utils::document,
 };
-use panel::{InfoProps, Panel};
+use panel::{Panel, PanelProps};
 use wasm_bindgen::JsCast;
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlInputElement, ImageData};
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
 use yew::prelude::*;
 use yew::props;
 
@@ -35,6 +35,7 @@ pub struct App {
     // UI state
     palette_idx: usize,
     paused: bool,
+    scale: u32,
 
     canvas: NodeRef,
     ctx: Option<CanvasRenderingContext2d>,
@@ -53,7 +54,8 @@ pub enum Msg {
     KeyUp(GbKey),
     FileUpload(File),
     NewROM(Box<dyn Cartridge>),
-    CyclePalette,
+    CyclePalette(i32),
+    SetScale(u32),
 }
 
 impl Component for App {
@@ -68,7 +70,6 @@ impl Component for App {
             })
         };
 
-        // Callbacks for key events.
         let on_key_down = create_key_callback(ctx, true);
         let on_key_up = create_key_callback(ctx, false);
         let doc = document();
@@ -99,6 +100,7 @@ impl Component for App {
             ctx: None,
             _interval,
             paused: false,
+            scale: 3,
             _key_up_listen: key_up,
             _key_down_listen: key_down,
             file_reader: None,
@@ -165,85 +167,66 @@ impl Component for App {
                 true
             }
 
-            Msg::CyclePalette => {
-                self.palette_idx = (self.palette_idx + 1) % 10;
+            Msg::CyclePalette(dir) => {
+                let len = PALETTES.len() as i32;
+                self.palette_idx = ((self.palette_idx as i32 + dir).rem_euclid(len)) as usize;
                 self.emulator
                     .set_palette(PALETTES[self.palette_idx].colours);
                 self.render_frame();
                 true
             }
+
+            Msg::SetScale(scale) => {
+                if scale != self.scale && scale >= MIN_SCALE && scale <= MAX_SCALE {
+                    self.scale = scale;
+                    self.ctx = None;
+                    true
+                } else {
+                    false
+                }
+            }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> yew::Html {
-        let info_props = props!(InfoProps {
+        let panel_props = props!(PanelProps {
             is_cgb: self.is_cgb,
             rom_name: self.rom_name.clone(),
             rom_size: self.rom_size,
             cart_type: self.cart_type.clone(),
             saveable: self.saveable,
-            pallette: AttrValue::from(PALETTES[self.palette_idx].name),
+            palette: AttrValue::from(PALETTES[self.palette_idx].name),
+            paused: self.paused,
+            scale: self.scale,
+            on_file_upload: ctx
+                .link()
+                .callback(|file: web_sys::File| Msg::FileUpload(file.into())),
+            on_pause: ctx.link().callback(|_| Msg::Pause),
+            on_cycle_palette: ctx.link().callback(Msg::CyclePalette),
+            on_set_scale: ctx.link().callback(Msg::SetScale),
         });
 
         html! {
-            <>
-            <div class="upper">
+            <div class="app-container">
+                <header>
+                    <h1>{"GameBoy.WASM"}</h1>
+                    <a href="https://github.com/0xNathanW/gameboy" target="_blank" rel="noopener noreferrer">
+                        {"GitHub"}
+                    </a>
+                </header>
 
-                <h1>{"GameBoy.WASM"}</h1>
-                <div class="canvas">
+                <div class="main-content">
+                    <Panel ..panel_props />
 
-                    <canvas
-                        width={(SCREEN_WIDTH * DISPLAY_SCALE as u32).to_string()}
-                        height={(SCREEN_HEIGHT * DISPLAY_SCALE as u32).to_string()}
-                        ref={self.canvas.clone()}>
-                    </canvas>
-
-                    <div class="button-row">
-
-                        <input
-                            id="file-input"
-                            type="file"
-                            multiple=false
-                            accept=".gb"
-                            onchange={
-                                ctx.link().batch_callback(move |event: Event| {
-                                    let input: HtmlInputElement = event.target_unchecked_into();
-                                    if let Some(file) = input.files().map(|list| list.get(0)).flatten() {
-                                        Some(Msg::FileUpload(file.into()))
-                                    } else {
-                                        None
-                                    }
-                                })
-                            }
-                        />
-                        <label for="file-input" class="file-input-label">
-                            <i class="gg-software-upload"></i>
-                            {"\u{00a0}Upload ROM"}
-                        </label>
-
-                        <input
-                            id="play-pause"
-                            type="checkbox"
-                            class="control-button"
-                            checked={self.paused}
-                            onclick={ctx.link().callback(|_| Msg::Pause)}
-                        />
-                        <label for="play-pause" class="control-button" id="play-pause-label">
-                        {""}
-                        </label>
-
-                        <button onclick={ctx.link().callback(|_| Msg::CyclePalette)} class="control-button">
-                            <i class="gg-color-picker"></i>
-                            {"\u{00a0}Change Palette"}
-                        </button>
-
+                    <div class="canvas-wrapper">
+                        <canvas
+                            width={(SCREEN_WIDTH * self.scale).to_string()}
+                            height={(SCREEN_HEIGHT * self.scale).to_string()}
+                            ref={self.canvas.clone()}>
+                        </canvas>
                     </div>
                 </div>
             </div>
-            <br/>
-            <br/>
-            <Panel ..info_props/>
-            </>
         }
     }
 }
@@ -255,28 +238,38 @@ impl App {
             return;
         };
 
+        let scale = self.scale as f64;
+
         let ctx = match &self.ctx {
             Some(ctx) => ctx,
             None => {
                 let ctx = match canvas.get_context("2d") {
                     Ok(Some(ctx)) => ctx,
                     Ok(None) => {
-                        web_sys::console::error_1(&"render_frame: canvas context unavailable".into());
+                        web_sys::console::error_1(
+                            &"render_frame: canvas context unavailable".into(),
+                        );
                         return;
                     }
                     Err(e) => {
-                        web_sys::console::error_1(&format!("render_frame: get_context failed: {:?}", e).into());
+                        web_sys::console::error_1(
+                            &format!("render_frame: get_context failed: {:?}", e).into(),
+                        );
                         return;
                     }
                 };
 
                 let Ok(ctx) = ctx.dyn_into::<CanvasRenderingContext2d>() else {
-                    web_sys::console::error_1(&"render_frame: context is not CanvasRenderingContext2d".into());
+                    web_sys::console::error_1(
+                        &"render_frame: context is not CanvasRenderingContext2d".into(),
+                    );
                     return;
                 };
 
-                if let Err(e) = ctx.scale(DISPLAY_SCALE, DISPLAY_SCALE) {
-                    web_sys::console::error_1(&format!("render_frame: scale failed: {:?}", e).into());
+                if let Err(e) = ctx.scale(scale, scale) {
+                    web_sys::console::error_1(
+                        &format!("render_frame: scale failed: {:?}", e).into(),
+                    );
                     return;
                 }
 
@@ -289,13 +282,17 @@ impl App {
         let img_data = match ImageData::new_with_u8_clamped_array(clamped_arr, 160) {
             Ok(data) => data,
             Err(e) => {
-                web_sys::console::error_1(&format!("render_frame: ImageData creation failed: {:?}", e).into());
+                web_sys::console::error_1(
+                    &format!("render_frame: ImageData creation failed: {:?}", e).into(),
+                );
                 return;
             }
         };
 
         if let Err(e) = ctx.put_image_data(&img_data, 0.0, 0.0) {
-            web_sys::console::error_1(&format!("render_frame: put_image_data failed: {:?}", e).into());
+            web_sys::console::error_1(
+                &format!("render_frame: put_image_data failed: {:?}", e).into(),
+            );
             return;
         }
 
