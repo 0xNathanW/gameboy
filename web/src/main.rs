@@ -36,9 +36,7 @@ pub struct App {
     palette_idx: usize,
     paused: bool,
     scale: u32,
-
     canvas: NodeRef,
-    ctx: Option<CanvasRenderingContext2d>,
 
     // Events
     _interval: Interval,
@@ -97,7 +95,6 @@ impl Component for App {
             cart_type: "ROM only".into(),
             canvas: NodeRef::default(),
             palette_idx: 1,
-            ctx: None,
             _interval,
             paused: false,
             scale: 3,
@@ -179,13 +176,17 @@ impl Component for App {
             Msg::SetScale(scale) => {
                 if scale != self.scale && scale >= MIN_SCALE && scale <= MAX_SCALE {
                     self.scale = scale;
-                    self.ctx = None;
                     true
                 } else {
                     false
                 }
             }
         }
+    }
+
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
+        // Canvas is cleared when resized, so redraw after any view update.
+        self.render_frame();
     }
 
     fn view(&self, ctx: &Context<Self>) -> yew::Html {
@@ -232,77 +233,39 @@ impl Component for App {
 }
 
 impl App {
+    // Applies the current display buffer to the canvas.
     fn render_frame(&mut self) {
-        let Some(canvas) = self.canvas.cast::<HtmlCanvasElement>() else {
-            web_sys::console::error_1(&"render_frame: canvas NodeRef not bound".into());
+        let Some(ctx) = self
+            .canvas
+            .cast::<HtmlCanvasElement>()
+            .and_then(|canvas| canvas.get_context("2d").ok())
+            .and_then(|ctx| ctx.and_then(|c| c.dyn_into::<CanvasRenderingContext2d>().ok()))
+        else {
+            web_sys::console::error_1(&"render_frame: failed to get canvas context".into());
             return;
         };
 
         let scale = self.scale as f64;
-
-        let ctx = match &self.ctx {
-            Some(ctx) => ctx,
-            None => {
-                let ctx = match canvas.get_context("2d") {
-                    Ok(Some(ctx)) => ctx,
-                    Ok(None) => {
-                        web_sys::console::error_1(
-                            &"render_frame: canvas context unavailable".into(),
-                        );
-                        return;
-                    }
-                    Err(e) => {
-                        web_sys::console::error_1(
-                            &format!("render_frame: get_context failed: {:?}", e).into(),
-                        );
-                        return;
-                    }
-                };
-
-                let Ok(ctx) = ctx.dyn_into::<CanvasRenderingContext2d>() else {
-                    web_sys::console::error_1(
-                        &"render_frame: context is not CanvasRenderingContext2d".into(),
-                    );
-                    return;
-                };
-
-                if let Err(e) = ctx.scale(scale, scale) {
-                    web_sys::console::error_1(
-                        &format!("render_frame: scale failed: {:?}", e).into(),
-                    );
-                    return;
-                }
-
-                self.ctx = Some(ctx);
-                self.ctx.as_ref().expect("just assigned")
-            }
-        };
-
-        let clamped_arr = wasm_bindgen::Clamped(self.emulator.display_buffer());
-        let img_data = match ImageData::new_with_u8_clamped_array(clamped_arr, 160) {
-            Ok(data) => data,
-            Err(e) => {
-                web_sys::console::error_1(
-                    &format!("render_frame: ImageData creation failed: {:?}", e).into(),
-                );
-                return;
-            }
-        };
-
-        if let Err(e) = ctx.put_image_data(&img_data, 0.0, 0.0) {
-            web_sys::console::error_1(
-                &format!("render_frame: put_image_data failed: {:?}", e).into(),
-            );
-            return;
+        if let Err(_) = ctx.reset_transform() {
+            web_sys::console::error_1(&"render_frame: failed to reset transform".into());
+        }
+        if let Err(_) = ctx.scale(scale, scale) {
+            web_sys::console::error_1(&"render_frame: failed to scale".into());
         }
 
-        let Some(canvas_element) = ctx.canvas() else {
-            web_sys::console::error_1(&"render_frame: ctx.canvas() returned None".into());
+        let clamped_arr = wasm_bindgen::Clamped(self.emulator.display_buffer());
+        let Ok(img_data) = ImageData::new_with_u8_clamped_array(clamped_arr, 160) else {
+            web_sys::console::error_1(&"render_frame: failed to create ImageData".into());
             return;
         };
 
-        if let Err(e) = ctx.draw_image_with_html_canvas_element(&canvas_element, 0.0, 0.0) {
-            web_sys::console::error_1(&format!("render_frame: draw_image failed: {:?}", e).into());
+        ctx.put_image_data(&img_data, 0.0, 0.0).ok();
+        if let Some(canvas_element) = ctx.canvas() {
+            if let Err(_) = ctx.draw_image_with_html_canvas_element(&canvas_element, 0.0, 0.0) {
+                web_sys::console::error_1(&"render_frame: failed to draw image".into());
+            }
+        } else {
+            web_sys::console::error_1(&"render_frame: failed to get canvas element".into());
         }
     }
 }
