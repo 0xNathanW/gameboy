@@ -114,8 +114,10 @@ impl Component for App {
                 self.emulator.tick();
                 if self.emulator.is_display_updated() {
                     self.render_frame();
+                    true
+                } else {
+                    false
                 }
-                true
             }
 
             Msg::Pause => {
