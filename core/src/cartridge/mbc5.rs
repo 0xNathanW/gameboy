@@ -44,20 +44,22 @@ impl Cartridge for MBC5 {
 impl MemoryBus for MBC5 {
     fn read_byte(&self, address: u16) -> u8 {
         match address {
-            0x0000..=0x3FFF => self.rom[address as usize],
+            0x0000..=0x3FFF => self.rom.get(address as usize).copied().unwrap_or(0xFF),
             0x4000..=0x7FFF => {
                 let offset = 0x4000 * self.rom_bank;
-                self.rom[offset + (address as usize - 0x4000)]
+                let idx = offset + (address as usize - 0x4000);
+                self.rom.get(idx).copied().unwrap_or(0xFF)
             }
             0xA000..=0xBFFF => {
-                if self.ram_enable {
+                if self.ram_enable && !self.ram.is_empty() {
                     let offset = 0x2000 * self.ram_bank;
-                    self.ram[offset + (address as usize - 0xA000)]
+                    let idx = offset + (address as usize - 0xA000);
+                    self.ram.get(idx).copied().unwrap_or(0xFF)
                 } else {
-                    0
+                    0xFF
                 }
             }
-            _ => 0,
+            _ => 0xFF,
         }
     }
 
@@ -68,9 +70,12 @@ impl MemoryBus for MBC5 {
             0x3000..=0x3FFF => self.rom_bank = (self.rom_bank & 0xFF) | ((b as usize) << 8),
             0x4000..=0x5FFF => self.ram_bank = (b & 0xF) as usize,
             0xA000..=0xBFFF => {
-                if self.ram_enable {
+                if self.ram_enable && !self.ram.is_empty() {
                     let offset = 0x2000 * self.ram_bank;
-                    self.ram[offset + (address as usize - 0xA000)] = b;
+                    let idx = offset + (address as usize - 0xA000);
+                    if let Some(x) = self.ram.get_mut(idx) {
+                        *x = b;
+                    }
                 }
             }
             _ => {}

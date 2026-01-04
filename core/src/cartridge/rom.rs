@@ -11,7 +11,7 @@ impl ROM {
 
 impl MemoryBus for ROM {
     fn read_byte(&self, address: u16) -> u8 {
-        self.0[address as usize]
+        self.0.get(address as usize).copied().unwrap_or(0xFF)
     }
     // ROM is read-only so no write functionality.
     fn write_byte(&mut self, _: u16, _: u8) {}

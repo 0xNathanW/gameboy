@@ -159,29 +159,31 @@ impl MemoryBus for MBC3 {
     fn read_byte(&self, address: u16) -> u8 {
         match address {
             // 0000-3FFF - ROM Bank 00 (Read Only)
-            0x0000..=0x3FFF => self.rom[address as usize],
+            0x0000..=0x3FFF => self.rom.get(address as usize).copied().unwrap_or(0xFF),
             // 4000-7FFF - ROM Bank 01-7F (Read Only)
             0x4000..=0x7FFF => {
                 let offset = 0x4000 * self.rom_bank;
-                self.rom[offset + (address as usize - 0x4000)]
+                let idx = offset + (address as usize - 0x4000);
+                self.rom.get(idx).copied().unwrap_or(0xFF)
             }
             // A000-BFFF - RAM Bank 00-03, if any (Read/Write)
             0xA000..=0xBFFF => {
                 if self.ram_enable {
-                    if self.ram_bank <= 3 {
+                    if self.ram_bank <= 3 && !self.ram.is_empty() {
                         let offset = self.ram_bank * 0x2000;
-                        self.ram[offset + (address as usize - 0xA000)]
+                        let idx = offset + (address as usize - 0xA000);
+                        self.ram.get(idx).copied().unwrap_or(0xFF)
                     } else {
                         match &self.rtc {
                             Some(rtc) => rtc.read_byte(self.ram_bank as u16),
-                            None => 0,
+                            None => 0xFF,
                         }
                     }
                 } else {
-                    0
+                    0xFF
                 }
             }
-            _ => 0,
+            _ => 0xFF,
         }
     }
 
@@ -209,9 +211,12 @@ impl MemoryBus for MBC3 {
             }
             0xA000..=0xBFFF => {
                 if self.ram_enable {
-                    if self.ram_bank <= 3 {
+                    if self.ram_bank <= 3 && !self.ram.is_empty() {
                         let offset = 0x2000 * self.ram_bank;
-                        self.ram[offset + (address as usize - 0xA000)] = b;
+                        let idx = offset + (address as usize - 0xA000);
+                        if let Some(x) = self.ram.get_mut(idx) {
+                            *x = b;
+                        }
                     } else {
                         match &mut self.rtc {
                             Some(rtc) => rtc.write_byte(address, b),
