@@ -769,7 +769,7 @@ impl APU {
         let blipbuf2 = create_blipbuf(sample_rate);
         let blipbuf3 = create_blipbuf(sample_rate);
         let blipbuf4 = create_blipbuf(sample_rate);
-        Self {
+        let mut apu = Self {
             buffer: Arc::new(Mutex::new(Vec::new())),
             reg: Register::power_up(Channel::Mixer),
             timer: Clock::new(CLOCK_FREQUENCY / 512),
@@ -779,7 +779,12 @@ impl APU {
             channel3: ChannelWave::power_up(blipbuf3),
             channel4: ChannelNoise::power_up(blipbuf4),
             sample_rate,
-        }
+        };
+        // Initialise APU registers.
+        apu.reg.nrx0 = 0x77; // NR50: max volume both channels
+        apu.reg.nrx1 = 0xF3; // NR51: all channels to both outputs
+        apu.reg.nrx2 = 0xF1; // NR52: power on, channel 1 enabled
+        apu
     }
 
     fn play(&mut self, l: &[f32], r: &[f32]) {
