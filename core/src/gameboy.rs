@@ -52,7 +52,7 @@ impl Gameboy {
     // Initialize the APU with the given sample rate.
     #[cfg(feature = "audio")]
     pub fn enable_audio(&mut self, sample_rate: u32) {
-        self.mem.apu = Some(APU::power_up(sample_rate));
+        self.mem.apu = Some(APU::new(sample_rate));
     }
 
     // Get a shared reference to the audio buffer for streaming.
