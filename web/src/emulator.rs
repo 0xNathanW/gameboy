@@ -1,4 +1,4 @@
-use crate::constants::CYCLES_PER_FRAME;
+use crate::{audio::AudioOutput, constants::CYCLES_PER_FRAME};
 use gameboy_core::{
     cartridge::{open_cartridge, Cartridge},
     Gameboy, GbKey, SCREEN_HEIGHT, SCREEN_WIDTH,
@@ -10,23 +10,63 @@ pub struct Emulator {
     gameboy: Gameboy,
     // RGBA buffer for web canvas rendering
     rgba_buffer: Vec<u8>,
+    audio_output: Option<AudioOutput>,
 }
 
 impl Default for Emulator {
     fn default() -> Self {
         let demo = open_cartridge(DEMO_DATA.to_vec(), None, None).unwrap();
+        let gameboy = Gameboy::new(demo, None);
+        // Note: APU is enabled lazily when user enables audio, not during init
+        // This avoids potential issues with WebAudio context during startup
         Self {
-            gameboy: Gameboy::new(demo, None),
+            gameboy,
             rgba_buffer: vec![0; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
+            audio_output: None,
         }
     }
 }
 
 impl Emulator {
     pub fn new(rom_data: Box<dyn Cartridge>) -> Self {
+        let gameboy = Gameboy::new(rom_data, None);
+        // Note: APU is enabled lazily when user enables audio
         Self {
-            gameboy: Gameboy::new(rom_data, None),
+            gameboy,
             rgba_buffer: vec![0; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
+            audio_output: None,
+        }
+    }
+
+    pub fn disable_audio(&mut self) {
+        self.audio_output = None;
+    }
+
+    pub fn enable_audio(&mut self) -> bool {
+        if self.audio_output.is_some() {
+            return true;
+        }
+
+        let sample_rate = AudioOutput::default_sample_rate();
+        self.gameboy.enable_audio(sample_rate);
+
+        let Some(buffer) = self.gameboy.audio_buffer() else {
+            web_sys::console::error_1(&"failed to get audio buffer".into());
+            return false;
+        };
+
+        match AudioOutput::new(buffer, sample_rate) {
+            Ok((output, actual_rate)) => {
+                if actual_rate != sample_rate {
+                    self.gameboy.enable_audio(actual_rate);
+                }
+                self.audio_output = Some(output);
+                true
+            }
+            Err(e) => {
+                web_sys::console::error_1(&format!("failed to create audio: {}", e).into());
+                false
+            }
         }
     }
 

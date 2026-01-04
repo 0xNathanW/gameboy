@@ -28,10 +28,14 @@ pub struct PanelProps {
     #[prop_or(3)]
     pub scale: u32,
 
+    #[prop_or_default]
+    pub audio_enabled: bool,
+
     pub on_file_upload: Callback<web_sys::File>,
     pub on_pause: Callback<()>,
     pub on_cycle_palette: Callback<i32>,
     pub on_set_scale: Callback<u32>,
+    pub on_toggle_audio: Callback<()>,
 }
 
 #[function_component]
@@ -89,6 +93,13 @@ pub fn Panel(props: &PanelProps) -> Html {
             if scale < MAX_SCALE {
                 callback.emit(scale + 1);
             }
+        })
+    };
+
+    let on_audio_click = {
+        let callback = props.on_toggle_audio.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(());
         })
     };
 
@@ -236,6 +247,17 @@ pub fn Panel(props: &PanelProps) -> Html {
                                 <button class="stepper-btn" onclick={on_palette_prev}>{"◀"}</button>
                                 <span class="stepper-value">{&props.palette}</span>
                                 <button class="stepper-btn" onclick={on_palette_next}>{"▶"}</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="stepper-row">
+                            <span class="stepper-label">{"Audio"}</span>
+                            <div class="stepper">
+                                <button class="stepper-btn" onclick={on_audio_click}>
+                                    {if props.audio_enabled { "On" } else { "Off" }}
+                                </button>
                             </div>
                         </div>
                     </div>

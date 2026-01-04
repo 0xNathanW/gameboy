@@ -12,6 +12,7 @@ use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
 use yew::prelude::*;
 use yew::props;
 
+mod audio;
 mod constants;
 mod emulator;
 mod panel;
@@ -37,6 +38,7 @@ pub struct App {
     paused: bool,
     scale: u32,
     canvas: NodeRef,
+    audio_enabled: bool,
 
     // Events
     _interval: Interval,
@@ -54,6 +56,7 @@ pub enum Msg {
     NewROM(Box<dyn Cartridge>),
     CyclePalette(i32),
     SetScale(u32),
+    ToggleAudio,
 }
 
 impl Component for App {
@@ -61,12 +64,7 @@ impl Component for App {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        let _interval = {
-            let link = ctx.link().clone();
-            Interval::new(FRAME_TIME_MS, move || {
-                link.send_message(Msg::Tick);
-            })
-        };
+        let emulator = Emulator::default();
 
         let on_key_down = create_key_callback(ctx, true);
         let on_key_up = create_key_callback(ctx, false);
@@ -85,9 +83,15 @@ impl Component for App {
                 }
             }
         });
+        let _interval = {
+            let link = ctx.link().clone();
+            Interval::new(FRAME_TIME_MS, move || {
+                link.send_message(Msg::Tick);
+            })
+        };
 
         Self {
-            emulator: Emulator::default(),
+            emulator,
             is_cgb: false,
             rom_name: "Demo".into(),
             rom_size: 0,
@@ -98,6 +102,7 @@ impl Component for App {
             _interval,
             paused: false,
             scale: 3,
+            audio_enabled: false,
             _key_up_listen: key_up,
             _key_down_listen: key_down,
             file_reader: None,
@@ -161,6 +166,9 @@ impl Component for App {
                 self.cart_type = cartridge.cartridge_type().into();
                 self.saveable = cartridge.is_saveable();
                 self.emulator = Emulator::new(cartridge);
+                if self.audio_enabled {
+                    self.emulator.enable_audio();
+                }
                 true
             }
 
@@ -181,6 +189,18 @@ impl Component for App {
                     false
                 }
             }
+
+            Msg::ToggleAudio => {
+                if !self.audio_enabled {
+                    if self.emulator.enable_audio() {
+                        self.audio_enabled = true;
+                    }
+                } else {
+                    self.emulator.disable_audio();
+                    self.audio_enabled = false;
+                }
+                true
+            }
         }
     }
 
@@ -199,12 +219,14 @@ impl Component for App {
             palette: AttrValue::from(PALETTES[self.palette_idx].name),
             paused: self.paused,
             scale: self.scale,
+            audio_enabled: self.audio_enabled,
             on_file_upload: ctx
                 .link()
                 .callback(|file: web_sys::File| Msg::FileUpload(file.into())),
             on_pause: ctx.link().callback(|_| Msg::Pause),
             on_cycle_palette: ctx.link().callback(Msg::CyclePalette),
             on_set_scale: ctx.link().callback(Msg::SetScale),
+            on_toggle_audio: ctx.link().callback(|_| Msg::ToggleAudio),
         });
 
         html! {

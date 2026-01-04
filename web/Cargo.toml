@@ -8,7 +8,8 @@ yew = { version = "0.21", features = ["csr"] }
 wasm-bindgen = "0.2.100"
 gloo = "0.11"
 futures = "0.3"
-gameboy-core = { version = "0.1.0", path = "../core" }
+gameboy-core = { version = "0.1.0", path = "../core", features = ["audio"] }
+cpal = { version = "0.15", features = ["wasm-bindgen"] }
 
 [dependencies.web-sys]
 version = "0.3.69"
@@ -21,4 +22,5 @@ features = [
     "KeyboardEvent",
     "FileList",
     "HtmlCollection",
+    "console",
 ]
