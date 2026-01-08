@@ -54,7 +54,6 @@ enum DisplayScale {
     X4,
     X8,
     X16,
-    X32,
 }
 
 fn load_file(path: &Path) -> Option<Vec<u8>> {
@@ -114,7 +113,6 @@ fn main() -> Result<()> {
             DisplayScale::X4 => Scale::X4,
             DisplayScale::X8 => Scale::X8,
             DisplayScale::X16 => Scale::X16,
-            DisplayScale::X32 => Scale::X32,
         },
         ..Default::default()
     };
