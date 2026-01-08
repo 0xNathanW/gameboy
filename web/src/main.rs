@@ -243,8 +243,11 @@ impl Component for App {
 
                     <div class="canvas-wrapper">
                         <canvas
-                            width={(SCREEN_WIDTH * self.scale).to_string()}
-                            height={(SCREEN_HEIGHT * self.scale).to_string()}
+                            width={SCREEN_WIDTH.to_string()}
+                            height={SCREEN_HEIGHT.to_string()}
+                            style={format!("width: {}px; height: {}px;",
+                                SCREEN_WIDTH * self.scale,
+                                SCREEN_HEIGHT * self.scale)}
                             ref={self.canvas.clone()}>
                         </canvas>
                     </div>
@@ -263,32 +266,16 @@ impl App {
             .and_then(|canvas| canvas.get_context("2d").ok())
             .and_then(|ctx| ctx.and_then(|c| c.dyn_into::<CanvasRenderingContext2d>().ok()))
         else {
-            web_sys::console::error_1(&"render_frame: failed to get canvas context".into());
             return;
         };
 
-        let scale = self.scale as f64;
-        if let Err(_) = ctx.reset_transform() {
-            web_sys::console::error_1(&"render_frame: failed to reset transform".into());
-        }
-        if let Err(_) = ctx.scale(scale, scale) {
-            web_sys::console::error_1(&"render_frame: failed to scale".into());
-        }
-
         let clamped_arr = wasm_bindgen::Clamped(self.emulator.display_buffer());
-        let Ok(img_data) = ImageData::new_with_u8_clamped_array(clamped_arr, 160) else {
-            web_sys::console::error_1(&"render_frame: failed to create ImageData".into());
+        let Ok(img_data) = ImageData::new_with_u8_clamped_array(clamped_arr, SCREEN_WIDTH as u32)
+        else {
             return;
         };
 
         ctx.put_image_data(&img_data, 0.0, 0.0).ok();
-        if let Some(canvas_element) = ctx.canvas() {
-            if let Err(_) = ctx.draw_image_with_html_canvas_element(&canvas_element, 0.0, 0.0) {
-                web_sys::console::error_1(&"render_frame: failed to draw image".into());
-            }
-        } else {
-            web_sys::console::error_1(&"render_frame: failed to get canvas element".into());
-        }
     }
 }
 
