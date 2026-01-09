@@ -33,6 +33,8 @@ pub struct PanelProps {
 
     pub on_file_upload: Callback<web_sys::File>,
     pub on_pause: Callback<()>,
+    pub on_step: Callback<()>,
+    pub on_reset: Callback<()>,
     pub on_cycle_palette: Callback<i32>,
     pub on_set_scale: Callback<u32>,
     pub on_toggle_audio: Callback<()>,
@@ -57,6 +59,20 @@ pub fn Panel(props: &PanelProps) -> Html {
 
     let on_pause_click = {
         let callback = props.on_pause.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(());
+        })
+    };
+
+    let on_step_click = {
+        let callback = props.on_step.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(());
+        })
+    };
+
+    let on_reset_click = {
+        let callback = props.on_reset.clone();
         Callback::from(move |_: MouseEvent| {
             callback.emit(());
         })
@@ -136,11 +152,19 @@ pub fn Panel(props: &PanelProps) -> Html {
 
     html! {
         <div class="sidebar">
-            // Pause button at top
+            // Control buttons at top
             <div class="panel-top">
-                <button onclick={on_pause_click} class="btn btn-full">
-                    {if props.paused { "Resume" } else { "Pause" }}
-                </button>
+                <div class="button-row">
+                    <button onclick={on_pause_click} class="btn">
+                        {if props.paused { "Resume" } else { "Pause" }}
+                    </button>
+                    <button onclick={on_step_click} class="btn">
+                        {"Step"}
+                    </button>
+                    <button onclick={on_reset_click} class="btn">
+                        {"Reset"}
+                    </button>
+                </div>
             </div>
 
             // Cartridge Section

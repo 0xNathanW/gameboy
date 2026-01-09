@@ -229,6 +229,15 @@ canvas {
     border-bottom: 1px solid var(--border);
 }
 
+.button-row {
+    display: flex;
+    gap: 8px;
+}
+
+.button-row .btn {
+    flex: 1;
+}
+
 .stepper-row {
     display: flex;
     justify-content: space-between;

@@ -79,6 +79,16 @@ impl Emulator {
         }
     }
 
+    // Step a single CPU instruction.
+    pub fn step(&mut self) {
+        let cycles = self.gameboy.tick();
+        self.gameboy.update(cycles);
+    }
+
+    pub fn reset(&mut self) {
+        self.gameboy.reset();
+    }
+
     pub fn is_display_updated(&mut self) -> bool {
         self.gameboy.display_updated()
     }

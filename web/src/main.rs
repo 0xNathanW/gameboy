@@ -50,6 +50,8 @@ pub struct App {
 pub enum Msg {
     Tick,
     Pause,
+    Step,
+    Reset,
     KeyDown(GbKey),
     KeyUp(GbKey),
     FileUpload(File),
@@ -126,6 +128,23 @@ impl Component for App {
 
             Msg::Pause => {
                 self.paused = !self.paused;
+                true
+            }
+
+            Msg::Step => {
+                if self.paused {
+                    self.emulator.step();
+                    if self.emulator.is_display_updated() {
+                        self.render_frame();
+                    }
+                }
+                false
+            }
+
+            Msg::Reset => {
+                self.emulator.reset();
+                self.emulator.tick();
+                self.render_frame();
                 true
             }
 
@@ -224,6 +243,8 @@ impl Component for App {
                 .link()
                 .callback(|file: web_sys::File| Msg::FileUpload(file.into())),
             on_pause: ctx.link().callback(|_| Msg::Pause),
+            on_step: ctx.link().callback(|_| Msg::Step),
+            on_reset: ctx.link().callback(|_| Msg::Reset),
             on_cycle_palette: ctx.link().callback(Msg::CyclePalette),
             on_set_scale: ctx.link().callback(Msg::SetScale),
             on_toggle_audio: ctx.link().callback(|_| Msg::ToggleAudio),
