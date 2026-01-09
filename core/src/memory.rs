@@ -189,4 +189,13 @@ impl Memory {
     pub fn rtc_zero(&self) -> Option<u64> {
         self.cartridge.rtc_zero()
     }
+
+    pub fn reset(&mut self) {
+        self.wram.fill(0);
+        self.hram.fill(0);
+        self.inte = 0;
+        self.intf.borrow_mut().reset();
+        self.cartridge.reset();
+        self.initialise();
+    }
 }

@@ -90,4 +90,9 @@ impl Gameboy {
     pub fn oam(&self) -> &[u8] {
         self.mem.gpu.oam()
     }
+
+    pub fn reset(&mut self) {
+        self.cpu.reset();
+        self.mem.reset();
+    }
 }

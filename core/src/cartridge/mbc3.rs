@@ -153,6 +153,12 @@ impl Cartridge for MBC3 {
     fn len(&self) -> usize {
         self.rom.len()
     }
+
+    fn reset(&mut self) {
+        self.rom_bank = 1;
+        self.ram_bank = 0;
+        self.ram_enable = false;
+    }
 }
 
 impl MemoryBus for MBC3 {

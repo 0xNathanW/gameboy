@@ -20,6 +20,14 @@ impl Cpu {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.regs.reset();
+        self.halted = false;
+        self.ime = true;
+        self.disable_interrupt = 0;
+        self.enable_interrupt = 0;
+    }
+
     pub fn next_byte(&mut self, mem: &Memory) -> u8 {
         let byte = mem.read_byte(self.regs.pc);
         self.regs.pc += 1;

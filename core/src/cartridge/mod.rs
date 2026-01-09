@@ -45,6 +45,8 @@ pub trait Cartridge: MemoryBus {
 
     fn len(&self) -> usize;
 
+    fn reset(&mut self) {}
+
     // The Game Boy’s boot procedure first displays the logo and then checks that it matches the dump above.
     // If it doesn’t, the boot ROM locks itself up.
     fn verify_logo(&self) -> Result<()> {

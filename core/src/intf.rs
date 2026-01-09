@@ -17,6 +17,10 @@ impl Intf {
         Intf(0)
     }
 
+    pub fn reset(&mut self) {
+        self.0 = 0;
+    }
+
     pub fn set_interrupt(&mut self, src: InterruptSource) {
         self.0 |= src as u8;
     }

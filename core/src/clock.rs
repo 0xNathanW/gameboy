@@ -11,6 +11,10 @@ impl Clock {
         Self { period, n: 0 }
     }
 
+    pub fn reset(&mut self) {
+        self.n = 0;
+    }
+
     pub fn tick(&mut self, cycles: u32) -> u32 {
         self.n += cycles;
         let c = self.n / self.period;

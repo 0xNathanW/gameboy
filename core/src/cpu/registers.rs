@@ -33,17 +33,18 @@ const CARRY_FLAG: u8 = 0b0001_0000;
 
 impl Registers {
     pub fn new() -> Self {
-        let mut reg = Self {
-            sp: 0xFFFE,
-            pc: 0x100,
-            ..Default::default()
-        };
-        // Initial register values.
-        reg.set_af(0x01B0);
-        reg.set_bc(0x0013);
-        reg.set_de(0x00D8);
-        reg.set_hl(0x014D);
+        let mut reg = Self::default();
+        reg.reset();
         reg
+    }
+
+    pub fn reset(&mut self) {
+        self.sp = 0xFFFE;
+        self.pc = 0x100;
+        self.set_af(0x01B0);
+        self.set_bc(0x0013);
+        self.set_de(0x00D8);
+        self.set_hl(0x014D);
     }
 
     // Getters for 16-bit registers.

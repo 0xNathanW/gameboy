@@ -39,6 +39,11 @@ impl Cartridge for MBC2 {
     fn len(&self) -> usize {
         self.rom.len()
     }
+
+    fn reset(&mut self) {
+        self.rom_bank = 1;
+        self.ram_enable = false;
+    }
 }
 
 impl MemoryBus for MBC2 {
