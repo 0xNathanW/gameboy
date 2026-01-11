@@ -31,6 +31,9 @@ pub struct PanelProps {
     #[prop_or_default]
     pub audio_enabled: bool,
 
+    #[prop_or(50)]
+    pub volume: u8,
+
     pub on_file_upload: Callback<web_sys::File>,
     pub on_pause: Callback<()>,
     pub on_step: Callback<()>,
@@ -38,6 +41,7 @@ pub struct PanelProps {
     pub on_cycle_palette: Callback<i32>,
     pub on_set_scale: Callback<u32>,
     pub on_toggle_audio: Callback<()>,
+    pub on_set_volume: Callback<u8>,
 }
 
 #[function_component]
@@ -116,6 +120,22 @@ pub fn Panel(props: &PanelProps) -> Html {
         let callback = props.on_toggle_audio.clone();
         Callback::from(move |_: MouseEvent| {
             callback.emit(());
+        })
+    };
+
+    let on_volume_down = {
+        let callback = props.on_set_volume.clone();
+        let volume = props.volume;
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(volume.saturating_sub(10));
+        })
+    };
+
+    let on_volume_up = {
+        let callback = props.on_set_volume.clone();
+        let volume = props.volume;
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(volume.saturating_add(10).min(100));
         })
     };
 
@@ -282,6 +302,17 @@ pub fn Panel(props: &PanelProps) -> Html {
                                 <button class="stepper-btn" onclick={on_audio_click}>
                                     {if props.audio_enabled { "On" } else { "Off" }}
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="stepper-row">
+                            <span class="stepper-label">{"Volume"}</span>
+                            <div class="stepper">
+                                <button class="stepper-btn" onclick={on_volume_down}>{"◀"}</button>
+                                <span class="stepper-value">{format!("{}%", props.volume)}</span>
+                                <button class="stepper-btn" onclick={on_volume_up}>{"▶"}</button>
                             </div>
                         </div>
                     </div>

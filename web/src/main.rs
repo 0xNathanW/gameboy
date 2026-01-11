@@ -39,6 +39,7 @@ pub struct App {
     scale: u32,
     canvas: NodeRef,
     audio_enabled: bool,
+    volume: u8,
 
     // Events
     _interval: Interval,
@@ -59,6 +60,7 @@ pub enum Msg {
     CyclePalette(i32),
     SetScale(u32),
     ToggleAudio,
+    SetVolume(u8),
 }
 
 impl Component for App {
@@ -105,6 +107,7 @@ impl Component for App {
             paused: false,
             scale: 3,
             audio_enabled: false,
+            volume: 50,
             _key_up_listen: key_up,
             _key_down_listen: key_down,
             file_reader: None,
@@ -220,6 +223,12 @@ impl Component for App {
                 }
                 true
             }
+
+            Msg::SetVolume(volume) => {
+                self.volume = volume.min(100);
+                self.emulator.set_volume(self.volume);
+                true
+            }
         }
     }
 
@@ -239,6 +248,7 @@ impl Component for App {
             paused: self.paused,
             scale: self.scale,
             audio_enabled: self.audio_enabled,
+            volume: self.volume,
             on_file_upload: ctx
                 .link()
                 .callback(|file: web_sys::File| Msg::FileUpload(file.into())),
@@ -248,6 +258,7 @@ impl Component for App {
             on_cycle_palette: ctx.link().callback(Msg::CyclePalette),
             on_set_scale: ctx.link().callback(Msg::SetScale),
             on_toggle_audio: ctx.link().callback(|_| Msg::ToggleAudio),
+            on_set_volume: ctx.link().callback(Msg::SetVolume),
         });
 
         html! {

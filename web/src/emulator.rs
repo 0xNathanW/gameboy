@@ -105,6 +105,10 @@ impl Emulator {
         self.gameboy.set_palette(palette);
     }
 
+    pub fn set_volume(&mut self, volume: u8) {
+        self.gameboy.set_volume(f32::from(volume) / 100.0);
+    }
+
     // Returns the display buffer as RGBA bytes for web canvas rendering.
     pub fn display_buffer(&mut self) -> &[u8] {
         let pixels = self.gameboy.display_buffer();
