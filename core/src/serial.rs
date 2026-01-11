@@ -51,15 +51,12 @@ impl MemoryBus for Serial {
             0xFF02 => {
                 self.control = b;
                 if b == 0x81 {
-                    match &self.callback {
-                        Some(callback) => {
-                            (callback)(self.data);
-                            self.data = b;
-                            self.intf
-                                .borrow_mut()
-                                .set_interrupt(InterruptSource::Serial);
-                        }
-                        None => {}
+                    if let Some(callback) = &self.callback {
+                        (callback)(self.data);
+                        self.data = b;
+                        self.intf
+                            .borrow_mut()
+                            .set_interrupt(InterruptSource::Serial);
                     }
                 }
             }

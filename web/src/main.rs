@@ -74,14 +74,14 @@ impl Component for App {
         let on_key_up = create_key_callback(ctx, false);
         let doc = document();
         let key_down = EventListener::new(&doc, "keydown", move |event| {
-            if let Some(key_event) = event.clone().dyn_into::<KeyboardEvent>().ok() {
+            if let Ok(key_event) = event.clone().dyn_into::<KeyboardEvent>() {
                 if !key_event.repeat() {
                     on_key_down.emit(key_event);
                 }
             }
         });
         let key_up = EventListener::new(&doc, "keyup", move |event| {
-            if let Some(key_event) = event.clone().dyn_into::<KeyboardEvent>().ok() {
+            if let Ok(key_event) = event.clone().dyn_into::<KeyboardEvent>() {
                 if !key_event.repeat() {
                     on_key_up.emit(key_event);
                 }
@@ -204,7 +204,7 @@ impl Component for App {
             }
 
             Msg::SetScale(scale) => {
-                if scale != self.scale && scale >= MIN_SCALE && scale <= MAX_SCALE {
+                if scale != self.scale && (MIN_SCALE..=MAX_SCALE).contains(&scale) {
                     self.scale = scale;
                     true
                 } else {
@@ -302,8 +302,7 @@ impl App {
         };
 
         let clamped_arr = wasm_bindgen::Clamped(self.emulator.display_buffer());
-        let Ok(img_data) = ImageData::new_with_u8_clamped_array(clamped_arr, SCREEN_WIDTH as u32)
-        else {
+        let Ok(img_data) = ImageData::new_with_u8_clamped_array(clamped_arr, SCREEN_WIDTH) else {
             return;
         };
 

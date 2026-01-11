@@ -113,10 +113,11 @@ impl MemoryBus for Memory {
             0xFF04..=0xFF07 => self.timer.write_byte(address, b),
             0xFF0F => self.intf.borrow_mut().write_byte(address, b),
             #[cfg(feature = "audio")]
-            0xFF10..=0xFF3F => match &mut self.apu {
-                Some(apu) => apu.write_byte(address, b),
-                None => {}
-            },
+            0xFF10..=0xFF3F => {
+                if let Some(apu) = &mut self.apu {
+                    apu.write_byte(address, b)
+                }
+            }
             0xFF40..=0xFF45 => self.gpu.write_byte(address, b),
             0xFF46 => self.dma_transfer(b),
             0xFF47..=0xFF4B => self.gpu.write_byte(address, b),
@@ -132,7 +133,9 @@ impl Memory {
         self.timer.update(cycles);
         self.gpu.update(cycles);
         #[cfg(feature = "audio")]
-        let _ = self.apu.as_mut().map_or((), |apu| apu.next(cycles));
+        if let Some(apu) = self.apu.as_mut() {
+            apu.next(cycles);
+        }
     }
 
     // Set inital values, rest should be randomised but we can also set to 0.

@@ -102,7 +102,7 @@ impl Cpu {
         self.regs.set_flag(Flag::H, false);
         self.regs.set_flag(Flag::N, false);
         self.regs.set_flag(Flag::Z, n == 0);
-        (n >> 4) | (n << 4)
+        n.rotate_left(4)
     }
 
     // RLC n - rotate n left, old bit 7 to carry flag.

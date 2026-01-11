@@ -80,7 +80,7 @@ impl SquareChannel {
         if duty_output != 0 {
             i32::from(self.envelope.volume)
         } else {
-            i32::from(self.envelope.volume) * -1
+            -i32::from(self.envelope.volume)
         }
     }
 

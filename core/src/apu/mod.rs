@@ -104,7 +104,7 @@ impl ChannelBlip {
     }
 
     fn samples_avail(&self) -> u32 {
-        self.blip.samples_avail() as u32
+        self.blip.samples_avail()
     }
 
     fn read_samples(&mut self, buf: &mut [i16]) -> usize {

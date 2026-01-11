@@ -70,7 +70,7 @@ impl NoiseChannel {
         if self.lfsr.output {
             i32::from(self.envelope.volume)
         } else {
-            i32::from(self.envelope.volume) * -1
+            -i32::from(self.envelope.volume)
         }
     }
 

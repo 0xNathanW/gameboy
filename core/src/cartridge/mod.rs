@@ -45,6 +45,10 @@ pub trait Cartridge: MemoryBus {
 
     fn len(&self) -> usize;
 
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     fn reset(&mut self) {}
 
     // The Game Boy’s boot procedure first displays the logo and then checks that it matches the dump above.
@@ -119,18 +123,11 @@ pub trait Cartridge: MemoryBus {
     }
 
     fn is_cgb(&self) -> bool {
-        match self.read_byte(0x143) {
-            0x80 | 0xC0 => true,
-            _ => false,
-        }
+        matches!(self.read_byte(0x143), 0x80 | 0xC0)
     }
 
     fn is_saveable(&self) -> bool {
-        if SAVEABLE.contains(&self.read_byte(0x147)) {
-            true
-        } else {
-            false
-        }
+        SAVEABLE.contains(&self.read_byte(0x147))
     }
 }
 

@@ -223,11 +223,8 @@ impl MemoryBus for MBC3 {
                         if let Some(x) = self.ram.get_mut(idx) {
                             *x = b;
                         }
-                    } else {
-                        match &mut self.rtc {
-                            Some(rtc) => rtc.write_byte(address, b),
-                            None => {}
-                        }
+                    } else if let Some(rtc) = &mut self.rtc {
+                        rtc.write_byte(address, b)
                     }
                 }
             }

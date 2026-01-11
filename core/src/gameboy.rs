@@ -57,6 +57,7 @@ impl Gameboy {
 
     // Get a shared reference to the audio buffer for streaming.
     #[cfg(feature = "audio")]
+    #[allow(clippy::type_complexity)]
     pub fn audio_buffer(&self) -> Option<Arc<Mutex<Vec<(f32, f32)>>>> {
         self.mem.apu.as_ref().map(|apu| apu.buffer.clone())
     }

@@ -68,7 +68,7 @@ impl WaveChannel {
 
         // Get 4-bit sample from wave RAM
         let byte = self.wave_ram[self.position / 2];
-        let sample = if self.position % 2 == 0 {
+        let sample = if self.position.is_multiple_of(2) {
             byte >> 4
         } else {
             byte & 0x0F
@@ -76,7 +76,7 @@ impl WaveChannel {
 
         let shifted = sample >> self.volume_shift();
         // Center around 0 (wave samples are 0-15, center at 7.5)
-        i32::from(shifted) - i32::from(8 >> self.volume_shift())
+        i32::from(shifted) - (8 >> self.volume_shift())
     }
 
     pub fn clock_length(&mut self) {
