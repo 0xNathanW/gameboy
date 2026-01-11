@@ -43,6 +43,10 @@ struct Args {
 
     #[arg(long, help = "Path to RTC file (default: <rom>.rtc)")]
     rtc: Option<PathBuf>,
+
+    #[arg(short, long, help = "Audio volume (0-100)", default_value = "100")]
+    #[arg(value_parser = clap::value_parser!(u8).range(0..=100))]
+    volume: u8,
 }
 
 // Copy of minifb::Scale such that it implements clap::ValueEnum.
@@ -136,7 +140,9 @@ fn main() -> Result<()> {
     let mut gameboy = Gameboy::new(cartridge, callback);
 
     let _audio_stream = if args.audio {
-        initialise_audio(&mut gameboy).context("failed to initialise audio")?
+        let stream = initialise_audio(&mut gameboy).context("failed to initialise audio")?;
+        gameboy.set_volume(f32::from(args.volume) / 100.0);
+        stream
     } else {
         None
     };
