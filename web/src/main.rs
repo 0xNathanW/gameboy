@@ -1,4 +1,4 @@
-use emulator::Emulator;
+use emulator::{Emulator, DEMO_DATA};
 use gameboy_core::{
     cartridge::{open_cartridge, Cartridge},
     GbKey,
@@ -98,7 +98,7 @@ impl Component for App {
             emulator,
             is_cgb: false,
             rom_name: "Demo".into(),
-            rom_size: 0,
+            rom_size: DEMO_DATA.len(),
             saveable: false,
             cart_type: "ROM only".into(),
             canvas: NodeRef::default(),
