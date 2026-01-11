@@ -1,7 +1,7 @@
 use crate::{audio::AudioOutput, constants::CYCLES_PER_FRAME};
 use gameboy_core::{
     cartridge::{open_cartridge, Cartridge},
-    Gameboy, GbKey, SCREEN_HEIGHT, SCREEN_WIDTH,
+    CpuState, Gameboy, GbKey, GpuState, SCREEN_HEIGHT, SCREEN_WIDTH,
 };
 
 pub const DEMO_DATA: &[u8] = include_bytes!("../pocket.gb");
@@ -130,4 +130,60 @@ impl Emulator {
     pub fn _rtc_zero(&self) -> Option<u64> {
         self.gameboy.rtc_zero()
     }
+
+    pub fn cpu_state(&self) -> CpuState {
+        self.gameboy.cpu_state()
+    }
+
+    pub fn gpu_state(&self) -> GpuState {
+        self.gameboy.gpu_state()
+    }
+
+    pub fn vram(&self) -> &[u8] {
+        self.gameboy.vram()
+    }
+}
+
+const TILE_SIZE: usize = 8;
+const BYTES_PER_TILE: usize = 16;
+const TILES_PER_ROW: usize = 16;
+const TILE_ROWS: usize = 24;
+const TOTAL_TILES: usize = 384;
+
+// Decode VRAM tiles to RGBA buffer.
+pub fn decode_tiles(vram: &[u8], palette: [u32; 4]) -> Vec<u8> {
+    let width = TILES_PER_ROW * TILE_SIZE;
+    let height = TILE_ROWS * TILE_SIZE;
+    let mut rgba = vec![0u8; width * height * 4];
+
+    for tile_idx in 0..TOTAL_TILES {
+        let tile_x = tile_idx % TILES_PER_ROW;
+        let tile_y = tile_idx / TILES_PER_ROW;
+        let tile_offset = tile_idx * BYTES_PER_TILE;
+
+        for row in 0..TILE_SIZE {
+            let byte_offset = tile_offset + row * 2;
+            if byte_offset + 1 >= vram.len() {
+                break;
+            }
+            let lo = vram[byte_offset];
+            let hi = vram[byte_offset + 1];
+
+            for col in 0..TILE_SIZE {
+                let bit = 7 - col;
+                let color_idx = ((hi >> bit) & 1) << 1 | ((lo >> bit) & 1);
+                let color = palette[color_idx as usize];
+
+                let px = tile_x * TILE_SIZE + col;
+                let py = tile_y * TILE_SIZE + row;
+                let rgba_offset = (py * width + px) * 4;
+
+                rgba[rgba_offset] = ((color >> 16) & 0xFF) as u8;
+                rgba[rgba_offset + 1] = ((color >> 8) & 0xFF) as u8;
+                rgba[rgba_offset + 2] = (color & 0xFF) as u8;
+                rgba[rgba_offset + 3] = 0xFF;
+            }
+        }
+    }
+    rgba
 }

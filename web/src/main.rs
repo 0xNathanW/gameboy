@@ -1,4 +1,4 @@
-use emulator::{Emulator, DEMO_DATA};
+use emulator::{decode_tiles, Emulator, DEMO_DATA};
 use gameboy_core::{
     cartridge::{open_cartridge, Cartridge},
     GbKey,
@@ -6,7 +6,7 @@ use gameboy_core::{
 use gloo::{
     dialogs::alert, events::EventListener, file::File, timers::callback::Interval, utils::document,
 };
-use panel::{Panel, PanelProps};
+use panel::{DebugState, Panel, PanelProps};
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
 use yew::prelude::*;
@@ -238,6 +238,12 @@ impl Component for App {
     }
 
     fn view(&self, ctx: &Context<Self>) -> yew::Html {
+        let debug_state = DebugState {
+            cpu: self.emulator.cpu_state(),
+            gpu: self.emulator.gpu_state(),
+            tiles: decode_tiles(self.emulator.vram(), PALETTES[self.palette_idx].colours),
+        };
+
         let panel_props = props!(PanelProps {
             is_cgb: self.is_cgb,
             rom_name: self.rom_name.clone(),
@@ -249,6 +255,7 @@ impl Component for App {
             scale: self.scale,
             audio_enabled: self.audio_enabled,
             volume: self.volume,
+            debug_state: Some(debug_state),
             on_file_upload: ctx
                 .link()
                 .callback(|file: web_sys::File| Msg::FileUpload(file.into())),

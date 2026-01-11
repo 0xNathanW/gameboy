@@ -1,6 +1,6 @@
 // Read-only inspection interface for debugging Game Boy internals.
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CpuState {
     pub a: u8,
     pub b: u8,
@@ -58,7 +58,7 @@ pub enum GpuMode {
     Drawing,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GpuState {
     pub ly: u8,
     pub lyc: u8,

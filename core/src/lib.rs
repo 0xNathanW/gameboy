@@ -17,6 +17,8 @@ mod timer;
 
 #[cfg(feature = "inspect")]
 pub mod inspect;
+#[cfg(feature = "inspect")]
+pub use inspect::{CpuState, GpuMode, GpuState};
 
 pub mod cartridge;
 pub use gameboy::Gameboy;

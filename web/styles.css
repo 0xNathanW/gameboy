@@ -167,6 +167,10 @@ canvas {
     border-bottom: 1px solid var(--border);
 }
 
+.panel-section:first-child .subsection-header {
+    margin-top: 4px;
+}
+
 .btn {
     height: 36px;
     padding: 0 14px;
@@ -278,6 +282,98 @@ canvas {
     min-width: 80px;
     text-align: center;
     font-size: 13px;
+}
+
+.debug-registers {
+    font-family: 'Lucida Console', Monaco, monospace;
+    font-size: 12px;
+}
+
+.register-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+}
+
+.register-name {
+    color: var(--text-muted);
+    width: 24px;
+}
+
+.register-value {
+    font-family: monospace;
+    background: var(--bg);
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    min-width: 32px;
+    text-align: center;
+}
+
+.register-value.wide {
+    min-width: 52px;
+}
+
+.flags-row,
+.gpu-flags {
+    display: flex;
+    gap: 8px;
+    padding: 6px 0;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.flags-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    min-width: 36px;
+}
+
+.flag {
+    padding: 3px 8px;
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+.flag.set {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+}
+
+.status-row {
+    display: flex;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 6px 0;
+}
+
+.status-label {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.status-value {
+    margin-left: 4px;
+    font-family: monospace;
+}
+
+.debug-gpu .info-row {
+    padding: 4px 0;
+}
+
+.tile-viewer {
+    padding: 8px 0;
+}
+
+.tile-canvas {
+    border: 1px solid var(--border);
+    image-rendering: pixelated;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 128 / 192;
 }
 
 @media (max-width: 700px) {
