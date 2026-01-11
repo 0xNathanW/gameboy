@@ -61,6 +61,19 @@ impl Gameboy {
         self.mem.apu.as_ref().map(|apu| apu.buffer.clone())
     }
 
+    // Set the audio volume (0.0 to 1.0).
+    #[cfg(feature = "audio")]
+    pub fn set_volume(&mut self, volume: f32) {
+        if let Some(apu) = &mut self.mem.apu {
+            apu.set_volume(volume);
+        }
+    }
+
+    #[cfg(feature = "audio")]
+    pub fn volume(&self) -> f32 {
+        self.mem.apu.as_ref().map_or(1.0, |apu| apu.volume())
+    }
+
     // Returns the save RAM data if the cartridge supports saves.
     pub fn save_data(&self) -> Option<&[u8]> {
         self.mem.save_data()

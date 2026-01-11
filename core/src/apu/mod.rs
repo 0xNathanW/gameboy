@@ -152,14 +152,14 @@ impl Mixer {
         self.ch4.end_frame();
     }
 
-    fn mix(&mut self, nr50: u8, nr51: u8, buffer: &mut Vec<(f32, f32)>) {
+    fn mix(&mut self, nr50: u8, nr51: u8, volume: f32, buffer: &mut Vec<(f32, f32)>) {
         let count = self.ch1.samples_avail() as usize;
         if count == 0 {
             return;
         }
 
-        let l_vol = f32::from((nr50 >> 4) & 0x07) / 7.0 * (1.0 / 15.0) * 0.5;
-        let r_vol = f32::from(nr50 & 0x07) / 7.0 * (1.0 / 15.0) * 0.5;
+        let l_vol = f32::from((nr50 >> 4) & 0x07) / 7.0 * (1.0 / 15.0) * 0.5 * volume;
+        let r_vol = f32::from(nr50 & 0x07) / 7.0 * (1.0 / 15.0) * 0.5 * volume;
 
         let mut buf1 = [0i16; 1024];
         let mut buf2 = [0i16; 1024];
@@ -244,6 +244,9 @@ pub struct APU {
     nr51: u8, // Channel panning
     nr52: u8, // Power control
 
+    // User volume control (0.0 to 1.0)
+    volume: f32,
+
     // Timing
     frame_sequencer: FrameSequencer,
     mixer: Mixer,
@@ -260,9 +263,18 @@ impl APU {
             nr50: 0x77,
             nr51: 0xF3,
             nr52: 0xF1,
+            volume: 1.0,
             frame_sequencer: FrameSequencer::new(),
             mixer: Mixer::new(sample_rate),
         }
+    }
+
+    pub fn set_volume(&mut self, volume: f32) {
+        self.volume = volume.clamp(0.0, 1.0);
+    }
+
+    pub fn volume(&self) -> f32 {
+        self.volume
     }
 
     fn power_on(&self) -> bool {
@@ -319,7 +331,8 @@ impl APU {
             // End frame and mix
             self.mixer.end_frame();
             if let Ok(mut buffer) = self.buffer.lock() {
-                self.mixer.mix(self.nr50, self.nr51, &mut buffer);
+                self.mixer
+                    .mix(self.nr50, self.nr51, self.volume, &mut buffer);
             }
         }
     }
