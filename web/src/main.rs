@@ -140,8 +140,10 @@ impl Component for App {
                     if self.emulator.is_display_updated() {
                         self.render_frame();
                     }
+                    true
+                } else {
+                    false
                 }
-                false
             }
 
             Msg::Reset => {
