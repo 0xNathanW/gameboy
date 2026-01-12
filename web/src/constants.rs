@@ -5,6 +5,9 @@ pub const FRAME_TIME_MS: u32 = 16;
 // CPU cycles per frame: 4,194,304 Hz / ~60 FPS = 69,905 cycles
 pub const CYCLES_PER_FRAME: u32 = 69_905;
 
+// Clock speed settings (Game Boy runs at 4.194304 MHz)
+pub const GB_CLOCK_FREQ: f32 = 4.194304;
+
 // Display constants
 pub const SCREEN_WIDTH: u32 = 160;
 pub const SCREEN_HEIGHT: u32 = 144;

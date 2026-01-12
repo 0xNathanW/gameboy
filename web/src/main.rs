@@ -37,6 +37,7 @@ pub struct App {
     palette_idx: usize,
     paused: bool,
     scale: u32,
+    speed: f32,
     canvas: NodeRef,
     audio_enabled: bool,
     volume: u8,
@@ -51,7 +52,6 @@ pub struct App {
 pub enum Msg {
     Tick,
     Pause,
-    Step,
     Reset,
     KeyDown(GbKey),
     KeyUp(GbKey),
@@ -59,6 +59,8 @@ pub enum Msg {
     NewROM(Box<dyn Cartridge>),
     CyclePalette(i32),
     SetScale(u32),
+    SetSpeed(f32),
+    ResetSpeed,
     ToggleAudio,
     SetVolume(u8),
 }
@@ -106,6 +108,7 @@ impl Component for App {
             _interval,
             paused: false,
             scale: 3,
+            speed: 1.0,
             audio_enabled: false,
             volume: 50,
             _key_up_listen: key_up,
@@ -120,7 +123,8 @@ impl Component for App {
                 if self.paused {
                     return false;
                 }
-                self.emulator.tick();
+                let cycles = (CYCLES_PER_FRAME as f32 * self.speed) as u32;
+                self.emulator.tick(cycles);
                 if self.emulator.is_display_updated() {
                     self.render_frame();
                     true
@@ -134,22 +138,21 @@ impl Component for App {
                 true
             }
 
-            Msg::Step => {
-                if self.paused {
-                    self.emulator.step();
-                    if self.emulator.is_display_updated() {
-                        self.render_frame();
-                    }
-                    true
-                } else {
-                    false
-                }
-            }
-
             Msg::Reset => {
                 self.emulator.reset();
-                self.emulator.tick();
+                let cycles = (CYCLES_PER_FRAME as f32 * self.speed) as u32;
+                self.emulator.tick(cycles);
                 self.render_frame();
+                true
+            }
+
+            Msg::SetSpeed(delta) => {
+                self.speed = (self.speed + delta).clamp(0.1, 1.0);
+                true
+            }
+
+            Msg::ResetSpeed => {
+                self.speed = 1.0;
                 true
             }
 
@@ -255,6 +258,7 @@ impl Component for App {
             palette: AttrValue::from(PALETTES[self.palette_idx].name),
             paused: self.paused,
             scale: self.scale,
+            speed: AttrValue::from(format!("{:.2} MHz", self.speed * GB_CLOCK_FREQ)),
             audio_enabled: self.audio_enabled,
             volume: self.volume,
             debug_state: Some(debug_state),
@@ -262,10 +266,11 @@ impl Component for App {
                 .link()
                 .callback(|file: web_sys::File| Msg::FileUpload(file.into())),
             on_pause: ctx.link().callback(|_| Msg::Pause),
-            on_step: ctx.link().callback(|_| Msg::Step),
             on_reset: ctx.link().callback(|_| Msg::Reset),
             on_cycle_palette: ctx.link().callback(Msg::CyclePalette),
             on_set_scale: ctx.link().callback(Msg::SetScale),
+            on_set_speed: ctx.link().callback(Msg::SetSpeed),
+            on_reset_speed: ctx.link().callback(|_| Msg::ResetSpeed),
             on_toggle_audio: ctx.link().callback(|_| Msg::ToggleAudio),
             on_set_volume: ctx.link().callback(Msg::SetVolume),
         });

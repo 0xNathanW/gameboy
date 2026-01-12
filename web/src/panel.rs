@@ -37,6 +37,9 @@ pub struct PanelProps {
     #[prop_or(3)]
     pub scale: u32,
 
+    #[prop_or(AttrValue::from("100%"))]
+    pub speed: AttrValue,
+
     #[prop_or_default]
     pub audio_enabled: bool,
 
@@ -45,10 +48,11 @@ pub struct PanelProps {
 
     pub on_file_upload: Callback<web_sys::File>,
     pub on_pause: Callback<()>,
-    pub on_step: Callback<()>,
     pub on_reset: Callback<()>,
     pub on_cycle_palette: Callback<i32>,
     pub on_set_scale: Callback<u32>,
+    pub on_set_speed: Callback<f32>,
+    pub on_reset_speed: Callback<()>,
     pub on_toggle_audio: Callback<()>,
     pub on_set_volume: Callback<u8>,
 
@@ -76,13 +80,6 @@ pub fn Panel(props: &PanelProps) -> Html {
 
     let on_pause_click = {
         let callback = props.on_pause.clone();
-        Callback::from(move |_: MouseEvent| {
-            callback.emit(());
-        })
-    };
-
-    let on_step_click = {
-        let callback = props.on_step.clone();
         Callback::from(move |_: MouseEvent| {
             callback.emit(());
         })
@@ -126,6 +123,27 @@ pub fn Panel(props: &PanelProps) -> Html {
             if scale < MAX_SCALE {
                 callback.emit(scale + 1);
             }
+        })
+    };
+
+    let on_speed_down = {
+        let callback = props.on_set_speed.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(-0.1);
+        })
+    };
+
+    let on_speed_up = {
+        let callback = props.on_set_speed.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(0.1);
+        })
+    };
+
+    let on_speed_reset = {
+        let callback = props.on_reset_speed.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(());
         })
     };
 
@@ -196,12 +214,17 @@ pub fn Panel(props: &PanelProps) -> Html {
                     <button onclick={on_pause_click} class="btn">
                         {if props.paused { "Resume" } else { "Pause" }}
                     </button>
-                    <button onclick={on_step_click} class="btn">
-                        {"Step"}
-                    </button>
                     <button onclick={on_reset_click} class="btn">
                         {"Reset"}
                     </button>
+                </div>
+                <div class="stepper-row">
+                    <span class="stepper-label">{"Clock Speed"}</span>
+                    <div class="stepper">
+                        <button class="stepper-btn" onclick={on_speed_down}>{"◀"}</button>
+                        <span class="stepper-value clickable" onclick={on_speed_reset}>{&props.speed}</span>
+                        <button class="stepper-btn" onclick={on_speed_up}>{"▶"}</button>
+                    </div>
                 </div>
             </div>
 

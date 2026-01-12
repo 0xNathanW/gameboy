@@ -233,6 +233,10 @@ canvas {
     border-bottom: 1px solid var(--border);
 }
 
+.panel-top .stepper-row {
+    margin-top: 12px;
+}
+
 .button-row {
     display: flex;
     gap: 8px;
@@ -282,6 +286,15 @@ canvas {
     min-width: 80px;
     text-align: center;
     font-size: 13px;
+}
+
+.stepper-value.clickable {
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.stepper-value.clickable:hover {
+    color: var(--accent);
 }
 
 .debug-registers {

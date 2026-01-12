@@ -1,4 +1,4 @@
-use crate::{audio::AudioOutput, constants::CYCLES_PER_FRAME};
+use crate::audio::AudioOutput;
 use gameboy_core::{
     cartridge::{open_cartridge, Cartridge},
     CpuState, Gameboy, GbKey, GpuState, SCREEN_HEIGHT, SCREEN_WIDTH,
@@ -70,19 +70,13 @@ impl Emulator {
         }
     }
 
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self, target_cycles: u32) {
         let mut frame_cycles = 0;
-        while frame_cycles < CYCLES_PER_FRAME {
+        while frame_cycles < target_cycles {
             let cycles = self.gameboy.tick();
             self.gameboy.update(cycles);
             frame_cycles += cycles;
         }
-    }
-
-    // Step a single CPU instruction.
-    pub fn step(&mut self) {
-        let cycles = self.gameboy.tick();
-        self.gameboy.update(cycles);
     }
 
     pub fn reset(&mut self) {
