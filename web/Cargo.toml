@@ -10,14 +10,18 @@ gloo = "0.11"
 futures = "0.3"
 gameboy-core = { version = "0.1.0", path = "../core", features = ["audio", "inspect"] }
 cpal = { version = "0.15", features = ["wasm-bindgen"] }
+js-sys = "0.3"
 
 [dependencies.web-sys]
 version = "0.3.69"
 features = [
+    "Blob",
     "CanvasRenderingContext2d",
+    "HtmlAnchorElement",
     "HtmlCanvasElement",
     "ImageData",
     "Document",
+    "Url",
     "Window",
     "KeyboardEvent",
     "FileList",

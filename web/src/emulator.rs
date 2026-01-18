@@ -116,12 +116,15 @@ impl Emulator {
         &self.rgba_buffer
     }
 
-    // TODO: implement saving/loading save data and RTC state
-    pub fn _save_data(&self) -> Option<&[u8]> {
+    pub fn save_data(&self) -> Option<&[u8]> {
         self.gameboy.save_data()
     }
 
-    pub fn _rtc_zero(&self) -> Option<u64> {
+    pub fn load_save(&mut self, data: &[u8]) {
+        self.gameboy.load_save(data);
+    }
+
+    pub fn rtc_zero(&self) -> Option<u64> {
         self.gameboy.rtc_zero()
     }
 

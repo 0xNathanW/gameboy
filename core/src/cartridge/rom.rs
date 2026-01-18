@@ -22,6 +22,8 @@ impl Cartridge for ROM {
         None
     }
 
+    fn load_save(&mut self, _data: &[u8]) {}
+
     fn ram_size(&self) -> usize {
         0
     }

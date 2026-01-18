@@ -7,7 +7,7 @@ use gloo::{
     dialogs::alert, events::EventListener, file::File, timers::callback::Interval, utils::document,
 };
 use panel::{InspectState, Panel, PanelProps};
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
 use yew::prelude::*;
 use yew::props;
@@ -46,6 +46,7 @@ pub struct App {
     _key_up_listen: EventListener,
     _key_down_listen: EventListener,
     file_reader: Option<gloo::file::callbacks::FileReader>,
+    save_file_reader: Option<gloo::file::callbacks::FileReader>,
 }
 
 pub enum Msg {
@@ -56,6 +57,9 @@ pub enum Msg {
     KeyUp(GbKey),
     FileUpload(File),
     NewROM(Box<dyn Cartridge>),
+    SaveFileUpload(File),
+    SaveFileLoaded(Vec<u8>),
+    DownloadSave,
     CyclePalette(i32),
     SetScale(u32),
     SetSpeed(f32),
@@ -111,6 +115,7 @@ impl Component for App {
             _key_up_listen: key_up,
             _key_down_listen: key_down,
             file_reader: None,
+            save_file_reader: None,
         }
     }
 
@@ -230,6 +235,36 @@ impl Component for App {
                 self.emulator.set_volume(self.volume);
                 true
             }
+
+            Msg::SaveFileUpload(file) => {
+                let link = ctx.link().clone();
+                self.save_file_reader = Some(gloo::file::callbacks::read_as_bytes(
+                    &file,
+                    move |bytes| match bytes {
+                        Ok(bytes) => link.send_message(Msg::SaveFileLoaded(bytes)),
+                        Err(e) => alert(&format!("Failed to read save file: {}", e)),
+                    },
+                ));
+                false
+            }
+
+            Msg::SaveFileLoaded(data) => {
+                self.emulator.load_save(&data);
+                self.emulator.reset();
+                let cycles = (CYCLES_PER_FRAME as f32 * self.speed) as u32;
+                self.emulator.tick(cycles);
+                self.render_frame();
+                true
+            }
+
+            Msg::DownloadSave => {
+                if let Some(save_data) = self.emulator.save_data() {
+                    if let Err(e) = download_save(&self.rom_name, save_data) {
+                        alert(&format!("Failed to download save: {:?}", e));
+                    }
+                }
+                false
+            }
         }
     }
 
@@ -260,6 +295,10 @@ impl Component for App {
             on_file_upload: ctx
                 .link()
                 .callback(|file: web_sys::File| Msg::FileUpload(file.into())),
+            on_save_upload: ctx
+                .link()
+                .callback(|file: web_sys::File| Msg::SaveFileUpload(file.into())),
+            on_save_download: ctx.link().callback(|_| Msg::DownloadSave),
             on_pause: ctx.link().callback(|_| Msg::Pause),
             on_reset: ctx.link().callback(|_| Msg::Reset),
             on_cycle_palette: ctx.link().callback(Msg::CyclePalette),
@@ -339,4 +378,23 @@ fn create_key_callback(ctx: &Context<App>, is_down: bool) -> Callback<KeyboardEv
         };
         link.send_message(msg);
     })
+}
+
+fn download_save(rom_name: &str, save_data: &[u8]) -> Result<(), JsValue> {
+    let array = js_sys::Uint8Array::from(save_data);
+    let parts = js_sys::Array::new();
+    parts.push(&array);
+    let blob = web_sys::Blob::new_with_u8_array_sequence(&parts)?;
+    let url = web_sys::Url::create_object_url_with_blob(&blob)?;
+
+    let window = web_sys::window().ok_or("no window")?;
+    let document = window.document().ok_or("no document")?;
+    let a = document
+        .create_element("a")?
+        .dyn_into::<web_sys::HtmlAnchorElement>()?;
+    a.set_href(&url);
+    a.set_download(&format!("{}.sav", rom_name));
+    a.click();
+    web_sys::Url::revoke_object_url(&url)?;
+    Ok(())
 }

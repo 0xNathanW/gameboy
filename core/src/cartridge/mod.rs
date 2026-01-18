@@ -37,6 +37,8 @@ const SAVEABLE: [u8; 11] = [
 pub trait Cartridge: MemoryBus {
     fn save_data(&self) -> Option<&[u8]>;
 
+    fn load_save(&mut self, data: &[u8]);
+
     fn ram_size(&self) -> usize;
 
     fn rtc_zero(&self) -> Option<u64> {

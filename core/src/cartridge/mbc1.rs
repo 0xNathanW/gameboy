@@ -50,6 +50,11 @@ impl Cartridge for MBC1 {
         }
     }
 
+    fn load_save(&mut self, data: &[u8]) {
+        let len = data.len().min(self.ram.len());
+        self.ram[..len].copy_from_slice(&data[..len]);
+    }
+
     fn ram_size(&self) -> usize {
         self.ram.len()
     }

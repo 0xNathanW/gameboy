@@ -80,6 +80,11 @@ impl Gameboy {
         self.mem.save_data()
     }
 
+    // Loads save data into the cartridge RAM.
+    pub fn load_save(&mut self, data: &[u8]) {
+        self.mem.load_save(data);
+    }
+
     // Returns the RTC zero timestamp if the cartridge has RTC support.
     pub fn rtc_zero(&self) -> Option<u64> {
         self.mem.rtc_zero()

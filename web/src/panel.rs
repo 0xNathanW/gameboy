@@ -44,6 +44,8 @@ pub struct PanelProps {
     pub volume: u8,
 
     pub on_file_upload: Callback<web_sys::File>,
+    pub on_save_upload: Callback<web_sys::File>,
+    pub on_save_download: Callback<()>,
     pub on_pause: Callback<()>,
     pub on_reset: Callback<()>,
     pub on_cycle_palette: Callback<i32>,
@@ -70,6 +72,23 @@ pub fn Panel(props: &PanelProps) -> Html {
             if let Some(file) = input.files().and_then(|list| list.get(0)) {
                 callback.emit(file);
             }
+        })
+    };
+
+    let on_save_file_change = {
+        let callback = props.on_save_upload.clone();
+        Callback::from(move |event: Event| {
+            let input: HtmlInputElement = event.target_unchecked_into();
+            if let Some(file) = input.files().and_then(|list| list.get(0)) {
+                callback.emit(file);
+            }
+        })
+    };
+
+    let on_save_download_click = {
+        let callback = props.on_save_download.clone();
+        Callback::from(move |_: MouseEvent| {
+            callback.emit(());
         })
     };
 
@@ -279,6 +298,30 @@ pub fn Panel(props: &PanelProps) -> Html {
                             {"Load ROM"}
                         </label>
                     </div>
+
+                    {if props.saveable {
+                        html! {
+                            <div class="panel-section">
+                                <input
+                                    id="save-file-input"
+                                    type="file"
+                                    multiple=false
+                                    accept=".sav"
+                                    onchange={on_save_file_change}
+                                />
+                                <div class="button-row">
+                                    <label for="save-file-input" class="btn">
+                                        {"Load Save"}
+                                    </label>
+                                    <button class="btn" onclick={on_save_download_click}>
+                                        {"Download Save"}
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    } else {
+                        html! {}
+                    }}
                 </div>
             </div>
 
