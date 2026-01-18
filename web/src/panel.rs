@@ -64,7 +64,6 @@ pub struct PanelProps {
 pub fn Panel(props: &PanelProps) -> Html {
     let cart_collapsed = use_state(|| false);
     let controls_collapsed = use_state(|| true);
-    let settings_collapsed = use_state(|| true);
     let debug_collapsed = use_state(|| false);
 
     // Clones are cheap here, callback is wrapped Rc.
@@ -180,11 +179,6 @@ pub fn Panel(props: &PanelProps) -> Html {
         Callback::from(move |_: MouseEvent| collapsed.set(!*collapsed))
     };
 
-    let toggle_settings = {
-        let collapsed = settings_collapsed.clone();
-        Callback::from(move |_: MouseEvent| collapsed.set(!*collapsed))
-    };
-
     let toggle_debug = {
         let collapsed = debug_collapsed.clone();
         Callback::from(move |_: MouseEvent| collapsed.set(!*collapsed))
@@ -224,6 +218,38 @@ pub fn Panel(props: &PanelProps) -> Html {
                         <button class="stepper-btn" onclick={on_speed_down}>{"◀"}</button>
                         <span class="stepper-value clickable" onclick={on_speed_reset}>{&props.speed}</span>
                         <button class="stepper-btn" onclick={on_speed_up}>{"▶"}</button>
+                    </div>
+                </div>
+                <div class="stepper-row">
+                    <span class="stepper-label">{"Scale"}</span>
+                    <div class="stepper">
+                        <button class="stepper-btn" onclick={on_scale_down}>{"◀"}</button>
+                        <span class="stepper-value">{format!("{}x", props.scale)}</span>
+                        <button class="stepper-btn" onclick={on_scale_up}>{"▶"}</button>
+                    </div>
+                </div>
+                <div class="stepper-row">
+                    <span class="stepper-label">{"Palette"}</span>
+                    <div class="stepper">
+                        <button class="stepper-btn" onclick={on_palette_prev}>{"◀"}</button>
+                        <span class="stepper-value">{&props.palette}</span>
+                        <button class="stepper-btn" onclick={on_palette_next}>{"▶"}</button>
+                    </div>
+                </div>
+                <div class="stepper-row">
+                    <span class="stepper-label">{"Audio"}</span>
+                    <div class="stepper">
+                        <button class="stepper-btn" onclick={on_audio_click}>
+                            {if props.audio_enabled { "On" } else { "Off" }}
+                        </button>
+                    </div>
+                </div>
+                <div class="stepper-row">
+                    <span class="stepper-label">{"Volume"}</span>
+                    <div class="stepper">
+                        <button class="stepper-btn" onclick={on_volume_down}>{"◀"}</button>
+                        <span class="stepper-value">{format!("{}%", props.volume)}</span>
+                        <button class="stepper-btn" onclick={on_volume_up}>{"▶"}</button>
                     </div>
                 </div>
             </div>
@@ -302,59 +328,6 @@ pub fn Panel(props: &PanelProps) -> Html {
                         <div class="control-item">
                             <span class="control-action">{"Select"}</span>
                             <span class="control-key">{"Shift"}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            // Settings Section
-            <div class="section">
-                <div class="section-header" onclick={toggle_settings}>
-                    <span class="section-title">{"Settings"}</span>
-                    <span class={toggle_class(*settings_collapsed)}>{"▼"}</span>
-                </div>
-                <div class={content_class(*settings_collapsed)}>
-                    <div class="panel-section">
-                        <div class="stepper-row">
-                            <span class="stepper-label">{"Scale"}</span>
-                            <div class="stepper">
-                                <button class="stepper-btn" onclick={on_scale_down}>{"◀"}</button>
-                                <span class="stepper-value">{format!("{}x", props.scale)}</span>
-                                <button class="stepper-btn" onclick={on_scale_up}>{"▶"}</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel-section">
-                        <div class="stepper-row">
-                            <span class="stepper-label">{"Palette"}</span>
-                            <div class="stepper">
-                                <button class="stepper-btn" onclick={on_palette_prev}>{"◀"}</button>
-                                <span class="stepper-value">{&props.palette}</span>
-                                <button class="stepper-btn" onclick={on_palette_next}>{"▶"}</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel-section">
-                        <div class="stepper-row">
-                            <span class="stepper-label">{"Audio"}</span>
-                            <div class="stepper">
-                                <button class="stepper-btn" onclick={on_audio_click}>
-                                    {if props.audio_enabled { "On" } else { "Off" }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel-section">
-                        <div class="stepper-row">
-                            <span class="stepper-label">{"Volume"}</span>
-                            <div class="stepper">
-                                <button class="stepper-btn" onclick={on_volume_down}>{"◀"}</button>
-                                <span class="stepper-value">{format!("{}%", props.volume)}</span>
-                                <button class="stepper-btn" onclick={on_volume_up}>{"▶"}</button>
-                            </div>
                         </div>
                     </div>
                 </div>
