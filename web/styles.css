@@ -253,7 +253,6 @@ canvas {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
 }
 
 .stepper-label {
