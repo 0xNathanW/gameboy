@@ -39,7 +39,6 @@ pub struct App {
     scale: u32,
     speed: f32,
     canvas: NodeRef,
-    audio_enabled: bool,
     volume: u8,
 
     // Events
@@ -61,7 +60,6 @@ pub enum Msg {
     SetScale(u32),
     SetSpeed(f32),
     ResetSpeed,
-    ToggleAudio,
     SetVolume(u8),
 }
 
@@ -109,8 +107,7 @@ impl Component for App {
             paused: false,
             scale: 3,
             speed: 1.0,
-            audio_enabled: false,
-            volume: 50,
+            volume: 0,
             _key_up_listen: key_up,
             _key_down_listen: key_down,
             file_reader: None,
@@ -193,8 +190,9 @@ impl Component for App {
                 self.cart_type = cartridge.cartridge_type().into();
                 self.saveable = cartridge.is_saveable();
                 self.emulator = Emulator::new(cartridge);
-                if self.audio_enabled {
+                if self.volume > 0 {
                     self.emulator.enable_audio();
+                    self.emulator.set_volume(self.volume);
                 }
                 true
             }
@@ -217,20 +215,18 @@ impl Component for App {
                 }
             }
 
-            Msg::ToggleAudio => {
-                if !self.audio_enabled {
-                    if self.emulator.enable_audio() {
-                        self.audio_enabled = true;
-                    }
-                } else {
-                    self.emulator.disable_audio();
-                    self.audio_enabled = false;
-                }
-                true
-            }
-
             Msg::SetVolume(volume) => {
-                self.volume = volume.min(100);
+                let new_volume = volume.min(100);
+                let was_enabled = self.volume > 0;
+                let should_enable = new_volume > 0;
+
+                if should_enable && !was_enabled {
+                    self.emulator.enable_audio();
+                } else if !should_enable && was_enabled {
+                    self.emulator.disable_audio();
+                }
+
+                self.volume = new_volume;
                 self.emulator.set_volume(self.volume);
                 true
             }
@@ -259,7 +255,6 @@ impl Component for App {
             paused: self.paused,
             scale: self.scale,
             speed: AttrValue::from(format!("{:.2} MHz", self.speed * GB_CLOCK_FREQ)),
-            audio_enabled: self.audio_enabled,
             volume: self.volume,
             debug_state: Some(debug_state),
             on_file_upload: ctx
@@ -271,7 +266,6 @@ impl Component for App {
             on_set_scale: ctx.link().callback(Msg::SetScale),
             on_set_speed: ctx.link().callback(Msg::SetSpeed),
             on_reset_speed: ctx.link().callback(|_| Msg::ResetSpeed),
-            on_toggle_audio: ctx.link().callback(|_| Msg::ToggleAudio),
             on_set_volume: ctx.link().callback(Msg::SetVolume),
         });
 

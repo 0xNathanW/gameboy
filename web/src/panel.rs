@@ -41,9 +41,6 @@ pub struct PanelProps {
     pub speed: AttrValue,
 
     #[prop_or_default]
-    pub audio_enabled: bool,
-
-    #[prop_or(50)]
     pub volume: u8,
 
     pub on_file_upload: Callback<web_sys::File>,
@@ -53,7 +50,6 @@ pub struct PanelProps {
     pub on_set_scale: Callback<u32>,
     pub on_set_speed: Callback<f32>,
     pub on_reset_speed: Callback<()>,
-    pub on_toggle_audio: Callback<()>,
     pub on_set_volume: Callback<u8>,
 
     #[prop_or_default]
@@ -146,13 +142,6 @@ pub fn Panel(props: &PanelProps) -> Html {
         })
     };
 
-    let on_audio_click = {
-        let callback = props.on_toggle_audio.clone();
-        Callback::from(move |_: MouseEvent| {
-            callback.emit(());
-        })
-    };
-
     let on_volume_down = {
         let callback = props.on_set_volume.clone();
         let volume = props.volume;
@@ -234,14 +223,6 @@ pub fn Panel(props: &PanelProps) -> Html {
                         <button class="stepper-btn" onclick={on_palette_prev}>{"◀"}</button>
                         <span class="stepper-value">{&props.palette}</span>
                         <button class="stepper-btn" onclick={on_palette_next}>{"▶"}</button>
-                    </div>
-                </div>
-                <div class="stepper-row">
-                    <span class="stepper-label">{"Audio"}</span>
-                    <div class="stepper">
-                        <button class="stepper-btn" onclick={on_audio_click}>
-                            {if props.audio_enabled { "On" } else { "Off" }}
-                        </button>
                     </div>
                 </div>
                 <div class="stepper-row">
