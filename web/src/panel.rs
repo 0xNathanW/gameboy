@@ -376,33 +376,33 @@ pub fn Panel(props: &PanelProps) -> Html {
                                     <div class="debug-registers">
                                         <div class="register-row">
                                             <span class="register-name">{"PC"}</span>
-                                            <span class="register-value wide">{format!("{:04X}", debug.cpu.pc)}</span>
+                                            <span class="register-value wide">{format!("{:#06X}", debug.cpu.pc)}</span>
                                             <span class="register-name">{"SP"}</span>
-                                            <span class="register-value wide">{format!("{:04X}", debug.cpu.sp)}</span>
+                                            <span class="register-value wide">{format!("{:#06X}", debug.cpu.sp)}</span>
                                         </div>
                                         <div class="register-row">
                                             <span class="register-name">{"A"}</span>
-                                            <span class="register-value">{format!("{:02X}", debug.cpu.a)}</span>
+                                            <span class="register-value">{format!("{:#04X}", debug.cpu.a)}</span>
                                             <span class="register-name">{"F"}</span>
-                                            <span class="register-value">{format!("{:02X}", debug.cpu.f)}</span>
+                                            <span class="register-value">{format!("{:#04X}", debug.cpu.f)}</span>
                                         </div>
                                         <div class="register-row">
                                             <span class="register-name">{"B"}</span>
-                                            <span class="register-value">{format!("{:02X}", debug.cpu.b)}</span>
+                                            <span class="register-value">{format!("{:#04X}", debug.cpu.b)}</span>
                                             <span class="register-name">{"C"}</span>
-                                            <span class="register-value">{format!("{:02X}", debug.cpu.c)}</span>
+                                            <span class="register-value">{format!("{:#04X}", debug.cpu.c)}</span>
                                         </div>
                                         <div class="register-row">
                                             <span class="register-name">{"D"}</span>
-                                            <span class="register-value">{format!("{:02X}", debug.cpu.d)}</span>
+                                            <span class="register-value">{format!("{:#04X}", debug.cpu.d)}</span>
                                             <span class="register-name">{"E"}</span>
-                                            <span class="register-value">{format!("{:02X}", debug.cpu.e)}</span>
+                                            <span class="register-value">{format!("{:#04X}", debug.cpu.e)}</span>
                                         </div>
                                         <div class="register-row">
                                             <span class="register-name">{"H"}</span>
-                                            <span class="register-value">{format!("{:02X}", debug.cpu.h)}</span>
+                                            <span class="register-value">{format!("{:#04X}", debug.cpu.h)}</span>
                                             <span class="register-name">{"L"}</span>
-                                            <span class="register-value">{format!("{:02X}", debug.cpu.l)}</span>
+                                            <span class="register-value">{format!("{:#04X}", debug.cpu.l)}</span>
                                         </div>
                                         <div class="flags-row">
                                             <span class="flags-label">{"Flags"}</span>
