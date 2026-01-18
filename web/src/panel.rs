@@ -5,7 +5,7 @@ use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlInputElement, Ima
 use yew::prelude::*;
 
 #[derive(Clone, PartialEq)]
-pub struct DebugState {
+pub struct InspectState {
     pub cpu: CpuState,
     pub gpu: GpuState,
     pub tiles: Vec<u8>,
@@ -53,14 +53,14 @@ pub struct PanelProps {
     pub on_set_volume: Callback<u8>,
 
     #[prop_or_default]
-    pub debug_state: Option<DebugState>,
+    pub inspect_state: Option<InspectState>,
 }
 
 #[function_component]
 pub fn Panel(props: &PanelProps) -> Html {
     let cart_collapsed = use_state(|| false);
     let controls_collapsed = use_state(|| true);
-    let debug_collapsed = use_state(|| true);
+    let inspect_collapsed = use_state(|| true);
 
     // Clones are cheap here, callback is wrapped Rc.
     let on_file_change = {
@@ -168,8 +168,8 @@ pub fn Panel(props: &PanelProps) -> Html {
         Callback::from(move |_: MouseEvent| collapsed.set(!*collapsed))
     };
 
-    let toggle_debug = {
-        let collapsed = debug_collapsed.clone();
+    let toggle_inspect = {
+        let collapsed = inspect_collapsed.clone();
         Callback::from(move |_: MouseEvent| collapsed.set(!*collapsed))
     };
 
@@ -314,14 +314,14 @@ pub fn Panel(props: &PanelProps) -> Html {
                 </div>
             </div>
 
-            // Debug Section
+            // Inspect Section
             <div class="section">
-                <div class="section-header" onclick={toggle_debug}>
-                    <span class="section-title">{"Debug"}</span>
-                    <span class={toggle_class(*debug_collapsed)}>{"▼"}</span>
+                <div class="section-header" onclick={toggle_inspect}>
+                    <span class="section-title">{"Inspect"}</span>
+                    <span class={toggle_class(*inspect_collapsed)}>{"▼"}</span>
                 </div>
-                <div class={content_class(*debug_collapsed)}>
-                    {if let Some(ref debug) = props.debug_state {
+                <div class={content_class(*inspect_collapsed)}>
+                    {if let Some(ref debug) = props.inspect_state {
                         html! {
                             <>
                                 // CPU Registers

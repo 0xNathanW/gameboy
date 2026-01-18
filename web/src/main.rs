@@ -6,7 +6,7 @@ use gameboy_core::{
 use gloo::{
     dialogs::alert, events::EventListener, file::File, timers::callback::Interval, utils::document,
 };
-use panel::{DebugState, Panel, PanelProps};
+use panel::{InspectState, Panel, PanelProps};
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
 use yew::prelude::*;
@@ -239,7 +239,7 @@ impl Component for App {
     }
 
     fn view(&self, ctx: &Context<Self>) -> yew::Html {
-        let debug_state = DebugState {
+        let inspect_state = InspectState {
             cpu: self.emulator.cpu_state(),
             gpu: self.emulator.gpu_state(),
             tiles: decode_tiles(self.emulator.vram(), PALETTES[self.palette_idx].colours),
@@ -256,7 +256,7 @@ impl Component for App {
             scale: self.scale,
             speed: AttrValue::from(format!("{:.2} MHz", self.speed * GB_CLOCK_FREQ)),
             volume: self.volume,
-            debug_state: Some(debug_state),
+            inspect_state: Some(inspect_state),
             on_file_upload: ctx
                 .link()
                 .callback(|file: web_sys::File| Msg::FileUpload(file.into())),
