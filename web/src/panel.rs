@@ -60,7 +60,7 @@ pub struct PanelProps {
 pub fn Panel(props: &PanelProps) -> Html {
     let cart_collapsed = use_state(|| false);
     let controls_collapsed = use_state(|| true);
-    let debug_collapsed = use_state(|| false);
+    let debug_collapsed = use_state(|| true);
 
     // Clones are cheap here, callback is wrapped Rc.
     let on_file_change = {
