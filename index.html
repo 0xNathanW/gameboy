@@ -1,16 +1,30 @@
 <!DOCTYPE html>
 <html>
-        <head>
-                <meta charset="utf-8">
-                <title>Gameboy.WASM</title>
-                <script type="module">import init from './gameboy-wasm-5a280ff7e1d1df60.js';init('./gameboy-wasm-5a280ff7e1d1df60_bg.wasm');</script>
-                <link rel="stylesheet" href="./styles-45eea9f3bff2e729.css">
-                <link rel="stylesheet" href="https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css">
-                <link rel="stylesheet" href="./styles.css">
-            
-                <link rel="preload" href="./gameboy-wasm-5a280ff7e1d1df60_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-                <link rel="modulepreload" href="./gameboy-wasm-5a280ff7e1d1df60.js">
-        </head>
 
-<body></body>
+<head>
+    <meta charset="utf-8" />
+    <title>Gameboy.WASM</title>
+
+    <script type="module">
+        import init, * as bindings from './gameboy-web-b6c7a4254c0d855f.js';
+        const wasm = await init({ module_or_path: './gameboy-web-b6c7a4254c0d855f_bg.wasm' });
+
+
+        window.wasmBindings = bindings;
+
+
+        dispatchEvent(new CustomEvent("TrunkApplicationStarted", { detail: { wasm } }));
+
+    </script>
+    <link rel="stylesheet" href="./styles-82e28feb3002318.css"
+        integrity="sha384-I2vSyslwcwlBtbz+K6q+XKu64cJkgFfVwhKU5oVh5tYitzacXZfThjhMEK/vZ4gi" />
+    <link rel="stylesheet" href="https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css" />
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="modulepreload" href="./gameboy-web-b6c7a4254c0d855f.js" crossorigin="anonymous"
+        integrity="sha384-RDR7vLr2daBeXgZLB62dI8ornuhFfv6ADAHqBGlf7wsClyie+QAHN2+ggNmR3Hp7">
+    <link rel="preload" href="/gameboy-web-b6c7a4254c0d855f_bg.wasm" crossorigin="anonymous"
+        integrity="sha384-cwyXOFGnb1vgnu+/+hX0WRTdBBeV0uz2VvFBFQwFq2WSuLmJ7ZheHL/e/mqfNUbX" as="fetch"
+        type="application/wasm">
+</head>
+
 </html>
