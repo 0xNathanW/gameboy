@@ -1,30 +1,41 @@
 # Gameboy
 A Gameboy emulator written in Rust, with support for WebAssembly.
 
-Play in the browser -> [0xnathanw.github.io/gameboy/](https://0xnathanw.github.io/gameboy/)
-
 <img src="assets/pokemon.gif" width="400"> <img src="assets/dr_mario.gif" width="400">
 
-## Repo Structure
+## Web
 
-core => library crate with gb system components.
+Use the emulator through the browser at: [0xnathanw.github.io/gameboy/](https://0xnathanw.github.io/gameboy/)
 
-gameboy      => binary crate.
+<img width="2050" height="1074" alt="image" src="https://github.com/user-attachments/assets/9e487e72-ecba-441b-a9b8-b38af0f79f36" />
 
-web => compiles to WebAssembly for use on the browser.
+## Native
 
-## Installation
-Note - Currently only tested on Windows.
+### Installation
 
 If you have rust installed you can clone the repository and build from source (be sure to compile with --release flag).
 
 Alternatively you can grab the binary from releases.
 
-## Usage
+### Usage
 
-![image](https://user-images.githubusercontent.com/86011312/196007956-21586824-334e-42b3-96c6-cc92470c6bfa.png)
+```bash
+Usage: gameboy [OPTIONS] <PATH>
 
-Saves will write to a .sav file in the same directory as the ROM.  Likewise, to read a save make sure it is in the same directory as the ROM.
+Arguments:
+  <PATH>  Path to rom
+
+Options:
+  -x, --scale <SCALE>    Display scale factor [default: x4] [possible values: x1, x2, x4, x8, x16]
+  -a, --audio            Enable audio
+  -s, --serial           Print serial write to stdout
+      --save <SAVE>      Path to save file (default: <rom>.sav)
+      --rtc <RTC>        Path to RTC file (default: <rom>.rtc)
+  -v, --volume <VOLUME>  Audio volume (0-100) [default: 100]
+  -h, --help             Print help
+```
+
+Saves will write to a .sav file in the same directory as the ROM.
 
 ### Controls
 | Input       | Key         |
